@@ -11,6 +11,8 @@ services:
       - AWS_REGION=$AWS_REGION
       - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    ports:
+      - 8080:8080
     labels:
       caddy: tusd.hopefest.co.uk
       caddy.reverse_proxy: "{{upstreams 8080}}"
@@ -18,15 +20,19 @@ services:
       caddy.reverse_proxy.flush_interval: -1
 
   server:
-    image: vija02/hf_server
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: hf_pics_server
     restart: always
     volumes:
       - ./db:/app/db
     networks:
       - caddy
-    environments:
-      - NODE_ENV=production
+    ports:
+      - 5000:5000
+    environment:
+      - NODE_ENV=development
     labels:
       caddy: pics24.hopefest.co.uk
       caddy.reverse_proxy: "{{upstreams 5000}}"
@@ -35,3 +41,6 @@ services:
 networks:
   caddy:
     external: true
+
+volumes:
+  database:

@@ -1,5 +1,8 @@
 {
 	"extends": "@repo/typescript-config/base.json",
 	"include": ["src", "./knexfile.ts", "migrations"],
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules"],
+	"compilerOptions": {
+		"outDir": "dist"
+	}
 }
