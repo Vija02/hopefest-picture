@@ -1,0 +1,22 @@
+version: "3.5"
+services:
+  tusd_server:
+    image: tusproject/tusd:v2.3
+    container_name: hf_pics_tusd
+    restart: always
+    command: -verbose -s3-bucket $S3_BUCKET -s3-endpoint $S3_ENDPOINT -behind-proxy -hooks-http http://server:5000/write
+    networks:
+      - caddy
+    environment:
+      - AWS_REGION=$AWS_REGION
+      - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    labels:
+      caddy: tusd.hopefest.co.uk
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+      caddy.reverse_proxy.transport: "http"
+      caddy.reverse_proxy.flush_interval: -1
+
+networks:
+  caddy:
+    external: true
