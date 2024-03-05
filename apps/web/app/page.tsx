@@ -5,43 +5,28 @@ import "@uppy/dashboard/dist/style.min.css"
 
 import { Box, Heading, Image } from "@chakra-ui/react"
 import { Masonry } from "masonic"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Uppy from "@uppy/core"
 import { Dashboard } from "@uppy/react"
 import Tus from "@uppy/tus"
+import axios from "axios"
 
-const cats = [
-	"https://cdn.pixabay.com/photo/2017/06/12/19/02/cat-2396473__480.jpg",
-	"https://cdn.pixabay.com/photo/2015/06/03/13/13/cats-796437__480.jpg",
-	"https://cdn.pixabay.com/photo/2012/11/26/13/58/cat-67345__480.jpg",
-	"https://cdn.pixabay.com/photo/2014/09/18/20/17/cat-451377__480.jpg",
-	"https://cdn.pixabay.com/photo/2015/01/31/12/36/cat-618470__480.jpg",
-	"https://cdn.pixabay.com/photo/2014/07/24/18/40/cat-401124__480.jpg",
-	"https://cdn.pixabay.com/photo/2014/04/13/20/49/cat-323262__480.jpg",
-	"https://cdn.pixabay.com/photo/2015/02/14/10/16/cat-636172__480.jpg",
-	"https://cdn.pixabay.com/photo/2013/10/28/14/30/cat-201855__480.jpg",
-	"https://cdn.pixabay.com/photo/2015/04/16/15/21/cat-725793__480.jpg",
-]
+const EasyMasonryComponent = () => {
+	const [data, setData] = useState([])
+	useEffect(() => {
+		axios.get("/pictures").then((res) => {
+			setData(res.data)
+		})
+	}, [])
 
-const randomChoice = (items: any[]) => items[Math.floor(Math.random() * items.length)]
+	return <Masonry items={data} columnGutter={8} render={FakeCard} />
+}
 
-let i = 0
-// const items = Array.from(Array(5000), () => ({ id: i++ }))
-
-const items = Array.from(Array(5000), () => ({
-	id: i++,
-	name: "Hi",
-	src: randomChoice(cats),
-}))
-
-const EasyMasonryComponent = () => (
-	<Masonry items={items} columnGutter={8} render={FakeCard} />
-)
-
-const FakeCard = ({ data: { id, name, src } }) => (
-	<div>
-		<img src={src} />
-	</div>
+const FakeCard = ({ data: { file_path } }: any) => (
+	<img
+		src={`https://hopefest-24.s3.us-west-000.backblazeb2.com/${file_path}`}
+		alt=""
+	/>
 )
 
 const Upload = () => {
