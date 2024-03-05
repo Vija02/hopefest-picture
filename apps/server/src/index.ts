@@ -58,6 +58,8 @@ app.all("/tusd_notify", async (req, res) => {
 	res.status(200).json({})
 })
 
+app.use(express.static("apps/web/out"))
+
 app.listen(port, () => {
 	console.log(new Date(), `Server Listening on port ${port}`)
 })

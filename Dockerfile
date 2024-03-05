@@ -43,7 +43,10 @@ WORKDIR /app/
 ENV NODE_ENV=production
 
 COPY --from=deps /app /app
+
 COPY --from=server /app/apps/server/dist /app/apps/server/dist
 COPY /apps/server/migrations /app/apps/server/migrations
+
+COPY --from=frontend /app/apps/web/out /app/apps/web/out
 
 ENTRYPOINT yarn migrate && node /app/apps/server/dist/apps/server/src/index.js
