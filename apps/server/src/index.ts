@@ -22,10 +22,12 @@ app.get("/health", (req, res) => {
 })
 
 app.get("/pictures", async (req, res) => {
-	const data = await knex("pictures").select("*").where({ is_hidden: false })
+	const data = await knex("pictures")
+		.select("*")
+		.where({ is_hidden: false })
+		.orderBy("created_at", "desc")
 
 	const formatted = data.map((x) => {
-		const path = signAndGetPath(`${imgBasePath}${x.file_path}`)
 		return {
 			id: x.id,
 			smallSizeSrc: imgproxyPath + path,
