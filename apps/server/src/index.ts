@@ -4,11 +4,15 @@ import express from "express"
 import Knex from "knex"
 import knexfile from "../../../knexfile"
 import { v4 } from "uuid"
+import { signAndGetPath } from "./imgproxy"
 
 const knex = Knex(knexfile)
 
 const app = express()
 const port = process.env.PORT || 5000
+const imgproxyPath =
+	process.env.IMGPROXY_PATH || "https://imgproxy.hopefest.co.uk"
+const imgBasePath = process.env.IMG_BASE_PATH
 
 app.use(cors())
 app.use(bodyParser.json())
@@ -20,7 +24,16 @@ app.get("/health", (req, res) => {
 app.get("/pictures", async (req, res) => {
 	const data = await knex("pictures").select("*").where({ is_hidden: false })
 
-	res.json(data)
+	const formatted = data.map((x) => {
+		const path = signAndGetPath(`${imgBasePath}${x.file_path}`)
+		return {
+			id: x.id,
+			smallSizeSrc: imgproxyPath + path,
+			createdAt: x.created_at,
+		}
+	})
+
+	res.json(formatted)
 })
 
 app.all("/tusd_notify", async (req, res) => {

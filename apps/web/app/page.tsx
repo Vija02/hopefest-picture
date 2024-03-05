@@ -19,14 +19,11 @@ const EasyMasonryComponent = () => {
 		})
 	}, [])
 
-	return <Masonry items={data} columnGutter={8} render={FakeCard} />
+	return <Masonry items={data} columnGutter={8} render={ImgRenderer} />
 }
 
-const FakeCard = ({ data: { file_path } }: any) => (
-	<img
-		src={`https://hopefest-24.s3.us-west-000.backblazeb2.com/${file_path}`}
-		alt=""
-	/>
+const ImgRenderer = ({ data: { id, smallSizeSrc } }: any) => (
+	<img id={id} src={smallSizeSrc} alt="" />
 )
 
 const Upload = () => {

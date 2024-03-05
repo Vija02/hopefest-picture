@@ -19,6 +19,22 @@ services:
       caddy.reverse_proxy.transport: "http"
       caddy.reverse_proxy.flush_interval: -1
 
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    container_name: hf_pics_imgproxy
+    restart: always
+    networks:
+      - caddy
+    environment:
+      - IMGPROXY_KEY=$IMGPROXY_KEY
+      - IMGPROXY_SALT=$IMGPROXY_SALT
+    ports:
+      - 8081:8080
+    labels:
+      caddy: imgproxy.hopefest.co.uk
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+      caddy.reverse_proxy.transport: "http"
+
   server:
     build:
       context: .
@@ -33,6 +49,10 @@ services:
       - 5000:5000
     environment:
       - NODE_ENV=development
+      - IMG_BASE_PATH=$IMG_BASE_PATH
+      - IMGPROXY_PATH=http://localhost:8081
+      - IMGPROXY_KEY=$IMGPROXY_KEY
+      - IMGPROXY_SALT=$IMGPROXY_SALT
     labels:
       caddy: pics24.hopefest.co.uk
       caddy.reverse_proxy: "{{upstreams 5000}}"
