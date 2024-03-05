@@ -20,9 +20,9 @@ const sign = (salt: string, target: string, secret: string) => {
 	return urlSafeBase64(hmac.digest())
 }
 
-export const signAndGetPath = (url: string) => {
+export const signAndGetPath = (url: string, size?: number) => {
 	const encoded_url = urlSafeBase64(url)
-	const path = `/rs:fit:400/${encoded_url}`
+	const path = size ? `/rs:fit:${size}/${encoded_url}` : `/${encoded_url}`
 
 	const signature = sign(SALT, path, KEY)
 	const result = `/${signature}${path}`

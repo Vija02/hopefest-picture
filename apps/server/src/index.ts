@@ -30,7 +30,17 @@ app.get("/pictures", async (req, res) => {
 	const formatted = data.map((x) => {
 		return {
 			id: x.id,
-			smallSizeSrc: imgproxyPath + path,
+			src: imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`),
+			src320:
+				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 320),
+			src640:
+				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 640),
+			src1200:
+				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 1200),
+			src2048:
+				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 2048),
+			src3840:
+				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 3840),
 			createdAt: x.created_at,
 		}
 	})
