@@ -18,7 +18,7 @@ services:
       caddy.reverse_proxy.flush_interval: -1
 
   server:
-    image: vija02/hf_server
+    image: ghcr.io/vija02/hopefest_pictures:main
     container_name: hf_pics_server
     restart: always
     volumes:
