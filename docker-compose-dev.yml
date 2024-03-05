@@ -28,6 +28,7 @@ services:
     environment:
       - IMGPROXY_KEY=$IMGPROXY_KEY
       - IMGPROXY_SALT=$IMGPROXY_SALT
+      - IMGPROXY_MAX_SRC_RESOLUTION=9999
     ports:
       - 8081:8080
     labels:
