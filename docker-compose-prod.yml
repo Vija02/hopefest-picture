@@ -25,7 +25,7 @@ services:
       - ./db:/app/db
     networks:
       - caddy
-    environments:
+    environment:
       - NODE_ENV=production
     labels:
       caddy: pics24.hopefest.co.uk
