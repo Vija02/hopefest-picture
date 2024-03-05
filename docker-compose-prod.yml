@@ -42,7 +42,7 @@ services:
     environment:
       - NODE_ENV=production
       - IMG_BASE_PATH=$IMG_BASE_PATH
-      - IMGPROXY_PATH=imgproxy.hopefest.co.uk
+      - IMGPROXY_PATH=https://imgproxy.hopefest.co.uk
       - IMGPROXY_KEY=$IMGPROXY_KEY
       - IMGPROXY_SALT=$IMGPROXY_SALT
     labels:
