@@ -40,6 +40,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_TUSD_PATH: http://localhost:8080/files/
     container_name: hf_pics_server
     restart: always
     volumes:

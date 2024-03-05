@@ -29,10 +29,7 @@ const ImgRenderer = ({ data: { id, smallSizeSrc } }: any) => (
 const Upload = () => {
 	const [uppy] = useState(() =>
 		new Uppy().use(Tus, {
-			endpoint:
-				process.env.NODE_ENV === "development"
-					? "http://localhost:8080/files/"
-					: "https://tusd.hopefest.co.uk/files/",
+			endpoint: process.env.NEXT_PUBLIC_TUSD_PATH || "https://tusd.hopefest.co.uk/files/",
 		}),
 	)
 

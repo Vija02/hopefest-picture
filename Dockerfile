@@ -2,6 +2,7 @@ FROM node:20-alpine as deps
 # Import our shared args
 ARG NODE_ENV
 ARG ROOT_URL
+ARG NEXT_PUBLIC_TUSD_PATH
 
 WORKDIR /app/
 
