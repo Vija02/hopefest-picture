@@ -5,7 +5,7 @@ import "@uppy/dashboard/dist/style.min.css"
 import "yet-another-react-lightbox/styles.css"
 import "yet-another-react-lightbox/plugins/counter.css"
 
-import { Box, Heading, Image } from "@chakra-ui/react"
+import { Box, Heading, Image, Stack, useBreakpoint } from "@chakra-ui/react"
 import { Masonry } from "masonic"
 import { useCallback, useEffect, useState } from "react"
 import Uppy from "@uppy/core"
@@ -118,28 +118,41 @@ export default function Page(): JSX.Element {
 		getPics()
 	}, [])
 
+	const breakpoint = useBreakpoint()
+
 	return (
 		<Box bgColor="#F0F2F5">
-			<Box
+			<Stack
 				bgColor="gray.800"
 				px={2}
 				py={2}
 				textAlign="center"
 				color="gray.100"
-				pb={8}
+				pb={{ base: 4, md: 8 }}
 				mb={4}
+				direction={{ base: "row", sm: "column" }}
 			>
 				<Image
 					display="block"
-					mx="auto"
-					marginBottom="-20px"
+					mx={{ base: "initial", sm: "auto" }}
+					marginBottom={{ base: "-15px", sm: "-20px" }}
 					src="https://hopefest.co.uk/images/hf24_logo_white.svg"
 					alt=""
-					height="140px"
-					marginLeft="-5px"
+					height={{ base: "65px", sm: "80px", md: "140px" }}
+					marginLeft={{ base: "5px", sm: "-5px" }}
+					width={{ base: "initial", sm: "100%" }}
 				/>
-				<Heading fontSize="xl">HOPE FEST UK 2024 Gallery</Heading>
-			</Box>
+				<Box display="flex" alignItems="center" justifyContent="center">
+					<Heading
+						mb={{ base: "-15px", sm: "initial" }}
+						fontSize={{ base: "xl", sm: "sm", md: "xl" }}
+					>
+						{breakpoint === "base"
+							? "HF24 Gallery"
+							: "HOPE FEST UK 2024 Gallery"}
+					</Heading>
+				</Box>
+			</Stack>
 			<Box
 				bgColor="white"
 				maxW={1210}
