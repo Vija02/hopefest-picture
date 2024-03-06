@@ -75,7 +75,7 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 		})
 	}, [])
 
-	return <Dashboard uppy={uppy} plugins={[]} />
+	return <Dashboard width={1200} uppy={uppy} plugins={[]} />
 }
 
 const LightBoxComponent = ({ data }: any) => {
