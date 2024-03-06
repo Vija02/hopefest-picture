@@ -41,7 +41,8 @@ const EasyMasonryComponent = ({ data }: any) => {
 const ImgRenderer = (props: any) => {
 	const {
 		index,
-		data: { id, src320 },
+		data: { id, src, src320, src640, src1200, src2048, src3840 },
+		width
 	} = props
 
 	const openSlide = useSlideStore((state) => state.openSlide)
@@ -49,10 +50,12 @@ const ImgRenderer = (props: any) => {
 	return (
 		<Image
 			id={id}
-			src={src320}
+			src={src}
 			alt=""
 			onClick={() => openSlide(index)}
 			cursor="pointer"
+			sizes={`${width}px`}
+			srcSet={`${src320} 320w, ${src640} 640w, ${src1200} 1200w, ${src2048} 2048w, ${src3840} 3840w`}
 		/>
 	)
 }
@@ -135,7 +138,7 @@ export default function Page(): JSX.Element {
 					height="140px"
 					marginLeft="-5px"
 				/>
-				<Heading fontSize="xl">HOPE FEST UK 2024</Heading>
+				<Heading fontSize="xl">HOPE FEST UK 2024 Gallery</Heading>
 			</Box>
 			<Box
 				bgColor="white"
