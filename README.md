@@ -1,79 +1,30 @@
-# Turborepo starter
+# Hopefest Picture
 
-This is an official starter Turborepo.
+[Link to running project](https://pics24.hopefest.co.uk/)
 
-## Using this example
+## Getting started
+Everything is setup through docker so all we need is to get the compose file running.
+There's a few required environment variables so we need to make sure those are provided. They should be all in the docker-compose file.
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
+```bash
+docker-compose -f docker-compose-dev.yml up -d --build
 ```
 
-## What's inside?
+## Components
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm build
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm dev
-```
-
-### Remote Caching
-
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-npx turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+There's a few components at play here. As seen in the docker-compose file.
+- `tusd` server
+  - Used by our frontend to upload the images
+  - The `tusd` server will upload the image and notify the backend
+- B2 Backblaze storage
+  - We store the images here. We use S3 for the API so we could also replace with another S3 compatible storage
+- `imgproxy` server
+  - This service is used to resize the image into smaller chunks for performance.
+  - Our server will sign and provide the link to the image through the `imgproxy` server.
+- Cache (Cloudflare)
+  - Infront the `imgproxy` server is a CDN so that we don't have to keep resizing the image once we've done it once
+- Our server
+  - This stores the list of pictures, serving it to the frontend
+  - It also listens from `tusd` whenever there's a new picture uploaded
+- Frontend
+  - Built and served as a static file through our server
