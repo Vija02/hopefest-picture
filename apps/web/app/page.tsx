@@ -3,6 +3,7 @@
 import "@uppy/core/dist/style.min.css"
 import "@uppy/dashboard/dist/style.min.css"
 import "yet-another-react-lightbox/styles.css"
+import "yet-another-react-lightbox/plugins/counter.css"
 
 import { Box, Heading, Image } from "@chakra-ui/react"
 import { Masonry } from "masonic"
@@ -12,6 +13,10 @@ import { Dashboard } from "@uppy/react"
 import Tus from "@uppy/tus"
 import axios from "axios"
 import Lightbox from "yet-another-react-lightbox"
+import Download from "yet-another-react-lightbox/plugins/download"
+import Counter from "yet-another-react-lightbox/plugins/counter"
+import Slideshow from "yet-another-react-lightbox/plugins/slideshow"
+import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen"
 import { create } from "zustand"
 
 interface SlideStoreState {
@@ -41,13 +46,23 @@ const ImgRenderer = (props: any) => {
 
 	const openSlide = useSlideStore((state) => state.openSlide)
 
-	return <img id={id} src={src320} alt="" onClick={() => openSlide(index)} />
+	return (
+		<Image
+			id={id}
+			src={src320}
+			alt=""
+			onClick={() => openSlide(index)}
+			cursor="pointer"
+		/>
+	)
 }
 
 const Upload = () => {
 	const [uppy] = useState(() =>
 		new Uppy().use(Tus, {
-			endpoint: process.env.NEXT_PUBLIC_TUSD_PATH || "https://tusd.hopefest.co.uk/files/",
+			endpoint:
+				process.env.NEXT_PUBLIC_TUSD_PATH ||
+				"https://tusd.hopefest.co.uk/files/",
 		}),
 	)
 
@@ -76,6 +91,7 @@ const LightBoxComponent = ({ data }: any) => {
 					{ src: x.src3840, width: 3840 },
 				],
 			}))}
+			plugins={[Counter, Download, Fullscreen, Slideshow]}
 		/>
 	)
 }
@@ -119,7 +135,7 @@ export default function Page(): JSX.Element {
 				boxShadow="md"
 			>
 				<Upload />
-
+				<Box mb={4} />
 				<EasyMasonryComponent data={data} />
 			</Box>
 			<LightBoxComponent data={data} />
