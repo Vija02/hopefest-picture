@@ -42,7 +42,7 @@ const ImgRenderer = (props: any) => {
 	const {
 		index,
 		data: { id, src, src320, src640, src1200, src2048, src3840 },
-		width
+		width,
 	} = props
 
 	const openSlide = useSlideStore((state) => state.openSlide)
@@ -62,7 +62,7 @@ const ImgRenderer = (props: any) => {
 
 const Upload = ({ getPics }: { getPics: () => void }) => {
 	const [uppy] = useState(() =>
-		new Uppy().use(Tus, {
+		new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
 			endpoint:
 				process.env.NEXT_PUBLIC_TUSD_PATH ||
 				"https://tusd.hopefest.co.uk/files/",
