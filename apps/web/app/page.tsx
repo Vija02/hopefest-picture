@@ -5,11 +5,18 @@ import "@uppy/dashboard/dist/style.min.css"
 import "yet-another-react-lightbox/styles.css"
 import "yet-another-react-lightbox/plugins/counter.css"
 
-import { Box, Heading, Image, Stack, useBreakpoint } from "@chakra-ui/react"
+import {
+	Box,
+	Button,
+	Heading,
+	Image,
+	Stack,
+	useBreakpoint,
+} from "@chakra-ui/react"
 import { Masonry } from "masonic"
 import { useCallback, useEffect, useState } from "react"
 import Uppy from "@uppy/core"
-import { Dashboard } from "@uppy/react"
+import { Dashboard, DashboardModal } from "@uppy/react"
 import Tus from "@uppy/tus"
 import axios from "axios"
 import Lightbox from "yet-another-react-lightbox"
@@ -75,7 +82,29 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 		})
 	}, [])
 
-	return <Dashboard width={1200} uppy={uppy} plugins={[]} />
+	const [open, setOpen] = useState(false)
+
+	const breakpoint = useBreakpoint()
+
+	return (
+		<>
+			{breakpoint === "base" ? (
+				<>
+					<Button
+						variant="outline"
+						borderRadius={0}
+						w="100%"
+						onClick={() => setOpen(!open)}
+					>
+						Upload image
+					</Button>
+					<DashboardModal open={open} uppy={uppy} plugins={[]} />
+				</>
+			) : (
+				<Dashboard width={1200} uppy={uppy} plugins={[]} />
+			)}
+		</>
+	)
 }
 
 const LightBoxComponent = ({ data }: any) => {
