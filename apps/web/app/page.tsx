@@ -7,7 +7,7 @@ import "yet-another-react-lightbox/plugins/counter.css"
 
 import { Box, Heading, Image } from "@chakra-ui/react"
 import { Masonry } from "masonic"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import Uppy from "@uppy/core"
 import { Dashboard } from "@uppy/react"
 import Tus from "@uppy/tus"
@@ -57,7 +57,7 @@ const ImgRenderer = (props: any) => {
 	)
 }
 
-const Upload = () => {
+const Upload = ({ getPics }: { getPics: () => void }) => {
 	const [uppy] = useState(() =>
 		new Uppy().use(Tus, {
 			endpoint:
@@ -65,6 +65,12 @@ const Upload = () => {
 				"https://tusd.hopefest.co.uk/files/",
 		}),
 	)
+
+	useEffect(() => {
+		uppy.on("complete", () => {
+			getPics()
+		})
+	}, [])
 
 	return <Dashboard uppy={uppy} plugins={[]} />
 }
@@ -98,10 +104,15 @@ const LightBoxComponent = ({ data }: any) => {
 
 export default function Page(): JSX.Element {
 	const [data, setData] = useState([])
-	useEffect(() => {
+
+	const getPics = useCallback(() => {
 		axios.get("/pictures").then((res) => {
 			setData(res.data)
 		})
+	}, [])
+
+	useEffect(() => {
+		getPics()
 	}, [])
 
 	return (
@@ -134,7 +145,7 @@ export default function Page(): JSX.Element {
 				py="16px"
 				boxShadow="md"
 			>
-				<Upload />
+				<Upload getPics={getPics} />
 				<Box mb={4} />
 				<EasyMasonryComponent data={data} />
 			</Box>
