@@ -1,12 +1,10 @@
 import bodyParser from "body-parser"
 import cors from "cors"
 import express from "express"
-import Knex from "knex"
-import knexfile from "../../../knexfile"
 import { v4 } from "uuid"
 import { signAndGetPath } from "./imgproxy"
-
-const knex = Knex(knexfile)
+import { handleAdmin } from "./admin"
+import { knex } from "./database"
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -16,6 +14,7 @@ const imgBasePath = process.env.IMG_BASE_PATH
 
 app.use(cors())
 app.use(bodyParser.json())
+app.use(bodyParser.urlencoded())
 
 app.get("/health", (req, res) => {
 	res.status(200).send("Ok")
@@ -82,6 +81,8 @@ app.all("/tusd_notify", async (req, res) => {
 
 	res.status(200).json({})
 })
+
+handleAdmin(app)
 
 app.use(express.static("apps/web/out"))
 
