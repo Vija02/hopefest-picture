@@ -178,7 +178,7 @@ export default function Page(): JSX.Element {
 					>
 						{breakpoint === "base"
 							? "HF24 Gallery"
-							: "HOPE FEST UK 2024 Gallery"}
+							: "HOPE FEST UK 2024 GALLERY"}
 					</Heading>
 				</Box>
 			</Stack>
