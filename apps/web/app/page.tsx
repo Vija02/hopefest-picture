@@ -56,7 +56,7 @@ const calculateSrcSet = (src: string, imgWidth: number) => {
 		.filter((size) => size < imgWidth)
 		.map((size) => ({
 			src: `${fileName}-${size}.${fileExtension}`,
-			width: imgWidth,
+			width: size,
 		}))
 }
 
