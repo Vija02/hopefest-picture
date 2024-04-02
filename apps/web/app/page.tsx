@@ -45,10 +45,25 @@ const EasyMasonryComponent = ({ data }: any) => {
 	return <Masonry items={data} columnGutter={8} render={ImgRenderer} />
 }
 
+const calculateSrcSet = (src: string, imgWidth: number) => {
+	const fileSplit = src.split(".")
+	const fileName = fileSplit[fileSplit.length - 2]
+	const fileExtension = fileSplit[fileSplit.length - 1]
+
+	const sizes = [320, 640, 1200, 2048, 3840]
+
+	return sizes
+		.filter((size) => size < imgWidth)
+		.map((size) => ({
+			src: `${fileName}-${size}.${fileExtension}`,
+			width: imgWidth,
+		}))
+}
+
 const ImgRenderer = (props: any) => {
 	const {
 		index,
-		data: { id, src, src320, src640, src1200, src2048, src3840 },
+		data: { id, src, width: imgWidth, height: imgHeight },
 		width,
 	} = props
 
@@ -62,7 +77,10 @@ const ImgRenderer = (props: any) => {
 			onClick={() => openSlide(index)}
 			cursor="pointer"
 			sizes={`${width}px`}
-			srcSet={`${src320} 320w, ${src640} 640w, ${src1200} 1200w, ${src2048} 2048w, ${src3840} 3840w`}
+			srcSet={calculateSrcSet(src, imgWidth)
+				.map((x) => `${x.src} ${x.width}w`)
+				.join(", ")}
+			css={{ aspectRatio: imgWidth / imgHeight }}
 		/>
 	)
 }
@@ -121,13 +139,7 @@ const LightBoxComponent = ({ data }: any) => {
 			}}
 			slides={data.map((x: any) => ({
 				src: x.src,
-				srcSet: [
-					{ src: x.src320, width: 320 },
-					{ src: x.src640, width: 640 },
-					{ src: x.src1200, width: 1200 },
-					{ src: x.src2048, width: 2048 },
-					{ src: x.src3840, width: 3840 },
-				],
+				srcSet: calculateSrcSet(x.src, x.width),
 			}))}
 			plugins={[Counter, Download, Fullscreen, Slideshow]}
 		/>

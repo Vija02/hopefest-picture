@@ -18,11 +18,8 @@ There's a few components at play here. As seen in the docker-compose file.
   - The `tusd` server will upload the image and notify the backend
 - B2 Backblaze storage
   - We store the images here. We use S3 for the API so we could also replace with another S3 compatible storage
-- `imgproxy` server
-  - This service is used to resize the image into smaller chunks for performance.
-  - Our server will sign and provide the link to the image through the `imgproxy` server.
 - Cache (Cloudflare)
-  - Infront the `imgproxy` server is a CDN so that we don't have to keep resizing the image once we've done it once
+  - Infront the B2 storage is a CDN so everything is fast
 - Our server
   - This stores the list of pictures, serving it to the frontend
   - It also listens from `tusd` whenever there's a new picture uploaded

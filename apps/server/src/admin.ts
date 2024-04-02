@@ -1,9 +1,6 @@
 import { Express } from "express"
 import { knex } from "./database"
-import { signAndGetPath } from "./imgproxy"
 
-const imgproxyPath =
-	process.env.IMGPROXY_PATH || "https://imgproxy.hopefest.co.uk"
 const imgBasePath = process.env.IMG_BASE_PATH
 
 export const handleAdmin = (app: Express) => {
@@ -24,19 +21,12 @@ export const handleAdmin = (app: Express) => {
 			.orderBy("created_at", "desc")
 
 		const formatted = data.map((x) => {
+			const fileSplit = x.file_path.split(".")
+			const fileName = fileSplit[fileSplit.length - 2]
+			const fileExtension = fileSplit[fileSplit.length - 1]
 			return {
 				id: x.id,
-				src: imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`),
-				src320:
-					imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 320),
-				src640:
-					imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 640),
-				src1200:
-					imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 1200),
-				src2048:
-					imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 2048),
-				src3840:
-					imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 3840),
+				src: `${imgBasePath}${fileName}-320.${fileExtension}`,
 				isHidden: x.is_hidden,
 				createdAt: x.created_at,
 			}
@@ -52,7 +42,7 @@ export const handleAdmin = (app: Express) => {
 						.map(
 							(x) => `
             <div style="display: flex; flex-direction: column;">
-              <img style="width: 100%;" src="${x.src320}" />
+              <img style="width: 100%;" src="${x.src}" />
               <div>
                 <input autocomplete="off" type="checkbox" hx-post="/admin/hide" hx-vals='{"id": ${x.id}}' ${x.isHidden ? "checked" : ""} />
                 <label>Is Hidden</label>

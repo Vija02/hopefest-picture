@@ -2,14 +2,12 @@ import bodyParser from "body-parser"
 import cors from "cors"
 import express from "express"
 import { v4 } from "uuid"
-import { signAndGetPath } from "./imgproxy"
 import { handleAdmin } from "./admin"
 import { knex } from "./database"
+import { cacheData } from "./cache"
 
 const app = express()
 const port = process.env.PORT || 5000
-const imgproxyPath =
-	process.env.IMGPROXY_PATH || "https://imgproxy.hopefest.co.uk"
 const imgBasePath = process.env.IMG_BASE_PATH
 
 app.use(cors())
@@ -23,23 +21,14 @@ app.get("/health", (req, res) => {
 app.get("/pictures", async (req, res) => {
 	const data = await knex("pictures")
 		.select("*")
-		.where({ is_hidden: false })
-		.orderBy("created_at", "desc")
+		.where({ is_hidden: false, is_cached: true })
+		.orderBy("exif_created_at", "desc")
 
 	const formatted = data.map((x) => {
 		return {
 			id: x.id,
-			src: imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`),
-			src320:
-				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 320),
-			src640:
-				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 640),
-			src1200:
-				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 1200),
-			src2048:
-				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 2048),
-			src3840:
-				imgproxyPath + signAndGetPath(`${imgBasePath}${x.file_path}`, 3840),
+			src: `${imgBasePath}${x.file_path}`,
+			size: { width: x.width, height: x.height },
 			createdAt: x.created_at,
 		}
 	})
@@ -74,6 +63,8 @@ app.all("/tusd_notify", async (req, res) => {
 			created_at: new Date(),
 			updated_at: new Date(),
 		})
+
+		await cacheData(req.body.Event.Upload.Storage.Key)
 
 		res.status(200).json({})
 		return

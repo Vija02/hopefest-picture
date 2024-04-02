@@ -15,6 +15,7 @@ COPY packages/typescript-config/ /app/packages/typescript-config/
 COPY packages/eslint-config/ /app/packages/eslint-config/
 
 RUN yarn install
+RUN SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm_config_arch=arm64 npm_config_platform=linuxmusl yarn add -W sharp --ignore-engines
 
 COPY knexfile.ts /app/
 
