@@ -33,16 +33,23 @@ export const cacheData = async (filePath: string) => {
 
 		const size = sizeOf(buffer)
 
+		let theWidth = size.width
+		let theHeight = size.height
+		if (size.orientation !== undefined && size.orientation >= 5) {
+			theWidth = size.height
+			theHeight = size.width
+		}
+
 		await knex("pictures")
 			.update({
-				width: size.width,
-				height: size.height,
+				width: theWidth,
+				height: theHeight,
 				exif_created_at: exifDateTime ? new Date(exifDateTime) : null,
 			})
 			.where({ id: x.id })
 
 		for (const width of widthSettings) {
-			if (size.width && width < size.width) {
+			if (theWidth && width < theWidth) {
 				const newImage = await sharp(buffer)
 					.rotate()
 					.resize(width)

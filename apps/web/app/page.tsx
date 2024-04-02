@@ -47,7 +47,7 @@ const EasyMasonryComponent = ({ data }: any) => {
 
 const calculateSrcSet = (src: string, imgWidth: number) => {
 	const fileSplit = src.split(".")
-	const fileName = fileSplit[fileSplit.length - 2]
+	const fileName = fileSplit.slice(0, -1).join(".")
 	const fileExtension = fileSplit[fileSplit.length - 1]
 
 	const sizes = [320, 640, 1200, 2048, 3840]
@@ -63,25 +63,30 @@ const calculateSrcSet = (src: string, imgWidth: number) => {
 const ImgRenderer = (props: any) => {
 	const {
 		index,
-		data: { id, src, width: imgWidth, height: imgHeight },
+		data: {
+			id,
+			src,
+			size: { width: imgWidth, height: imgHeight },
+		},
 		width,
 	} = props
 
 	const openSlide = useSlideStore((state) => state.openSlide)
 
 	return (
-		<Image
-			id={id}
-			src={src}
-			alt=""
-			onClick={() => openSlide(index)}
-			cursor="pointer"
-			sizes={`${width}px`}
-			srcSet={calculateSrcSet(src, imgWidth)
-				.map((x) => `${x.src} ${x.width}w`)
-				.join(", ")}
-			css={{ aspectRatio: imgWidth / imgHeight }}
-		/>
+		<Box width={width} height={(imgHeight * width) / imgWidth}>
+			<Image
+				id={id}
+				src={src}
+				alt=""
+				onClick={() => openSlide(index)}
+				cursor="pointer"
+				sizes={`${width}px`}
+				srcSet={calculateSrcSet(src, imgWidth)
+					.map((x) => `${x.src} ${x.width}w`)
+					.join(", ")}
+			/>
+		</Box>
 	)
 }
 
