@@ -1,3 +1,4 @@
+import { sha256 } from "js-sha256"
 import bodyParser from "body-parser"
 import cors from "cors"
 import express from "express"
@@ -34,6 +35,16 @@ app.get("/pictures", async (req, res) => {
 	})
 
 	res.json(formatted)
+})
+
+app.post("/duplicate-check", async (req, res) => {
+	const sha256List: string[] = req.body.data
+
+	const data = await knex("pictures")
+		.select("sha256")
+		.whereIn("sha256", sha256List)
+
+	res.json(data.map((x) => x.sha256))
 })
 
 app.all("/tusd_notify", async (req, res) => {

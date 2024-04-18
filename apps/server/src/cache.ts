@@ -4,6 +4,7 @@ import axios from "axios"
 import sizeOf from "image-size"
 import exifr from "exifr"
 import AWS from "aws-sdk"
+import { sha256 } from "js-sha256"
 
 const s3 = new AWS.S3({
 	accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -33,6 +34,8 @@ export const cacheData = async (filePath: string) => {
 
 		const size = sizeOf(buffer)
 
+		const sha256Result = sha256(buffer)
+
 		let theWidth = size.width
 		let theHeight = size.height
 		if (size.orientation !== undefined && size.orientation >= 5) {
@@ -45,6 +48,7 @@ export const cacheData = async (filePath: string) => {
 				width: theWidth,
 				height: theHeight,
 				exif_created_at: exifDateTime ? new Date(exifDateTime) : null,
+				sha256: sha256Result,
 			})
 			.where({ id: x.id })
 

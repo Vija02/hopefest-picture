@@ -15,7 +15,12 @@ import {
 } from "@chakra-ui/react"
 import { Masonry } from "masonic"
 import { useCallback, useEffect, useState } from "react"
-import Uppy from "@uppy/core"
+import Uppy, {
+	BasePlugin,
+	DefaultPluginOptions,
+	UIPlugin,
+	UppyFile,
+} from "@uppy/core"
 import { Dashboard, DashboardModal } from "@uppy/react"
 import Tus from "@uppy/tus"
 import axios from "axios"
@@ -25,6 +30,7 @@ import Counter from "yet-another-react-lightbox/plugins/counter"
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow"
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen"
 import { create } from "zustand"
+import { sha256 } from "js-sha256"
 
 interface SlideStoreState {
 	slideIndex: number
@@ -92,11 +98,13 @@ const ImgRenderer = (props: any) => {
 
 const Upload = ({ getPics }: { getPics: () => void }) => {
 	const [uppy] = useState(() =>
-		new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
-			endpoint:
-				process.env.NEXT_PUBLIC_TUSD_PATH ||
-				"https://tusd.hopefest.co.uk/files/",
-		}),
+		new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } })
+			.use(UppyDuplicateChecker)
+			.use(Tus, {
+				endpoint:
+					process.env.NEXT_PUBLIC_TUSD_PATH ||
+					"https://tusd.hopefest.co.uk/files/",
+			}),
 	)
 
 	useEffect(() => {
@@ -214,4 +222,70 @@ export default function Page(): JSX.Element {
 			<LightBoxComponent data={data} />
 		</Box>
 	)
+}
+
+const checkDuplicate = async (files: UppyFile[]): Promise<string[]> => {
+	const mapping = await Promise.all(
+		files.map(async (file) => {
+			const sha256Result = sha256(await file.data.arrayBuffer())
+			return { id: file.id, sha256: sha256Result }
+		}),
+	)
+
+	const res = await axios.post("/duplicate-check", {
+		data: mapping.map((x) => x.sha256),
+	})
+
+	return res.data.map(
+		(sha256: string) => mapping.find((x) => x.sha256 === sha256)?.id,
+	)
+}
+
+class UppyDuplicateChecker extends UIPlugin {
+	constructor(
+		uppy: Uppy<Record<string, unknown>, Record<string, unknown>>,
+		opts?: DefaultPluginOptions | undefined,
+	) {
+		super(uppy, opts)
+
+		this.id = "DuplicateChecker"
+		this.type = "modifier"
+	}
+
+	prepareUpload = async (fileIDs: string[]) => {
+		const files = fileIDs.map((fileID) => this.uppy.getFile(fileID))
+		files.forEach((file) => {
+			this.uppy.emit("preprocess-progress", file, {
+				mode: "indeterminate",
+				message: "Checking duplicates",
+			})
+		})
+
+		const duplicateFileIds = await checkDuplicate(files)
+
+		duplicateFileIds.map((duplicate) => {
+			this.uppy.removeFile(duplicate)
+		})
+		if (duplicateFileIds.length > 0) {
+			this.uppy.log(
+				`[Image Duplicate Checker] ${duplicateFileIds.length} image(s) removed`,
+			)
+		}
+
+		files
+			.filter((file) => !duplicateFileIds.includes(file.id))
+			.forEach((file) => {
+				this.uppy.emit("preprocess-complete", file)
+			})
+
+		return
+	}
+
+	install() {
+		this.uppy.addPreProcessor(this.prepareUpload)
+	}
+
+	uninstall() {
+		this.uppy.removePreProcessor(this.prepareUpload)
+	}
 }
