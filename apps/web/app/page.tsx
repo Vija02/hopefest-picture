@@ -207,8 +207,8 @@ export default function Page(): JSX.Element {
 				py="16px"
 				boxShadow="md"
 			>
-				<Upload getPics={getPics} />
-				<Box mb={4} />
+				{/* <Upload getPics={getPics} />
+				<Box mb={4} /> */}
 				<EasyMasonryComponent data={data} />
 			</Box>
 			<LightBoxComponent data={data} />
