@@ -194,8 +194,8 @@ export default function Page(): JSX.Element {
 						fontSize={{ base: "xl", sm: "sm", md: "xl" }}
 					>
 						{breakpoint === "base"
-							? "HF24 Gallery"
-							: "HOPE FEST UK 2024 GALLERY"}
+							? "HF25 Gallery"
+							: "HOPE FEST UK 2025 GALLERY"}
 					</Heading>
 				</Box>
 			</Stack>
@@ -207,8 +207,8 @@ export default function Page(): JSX.Element {
 				py="16px"
 				boxShadow="md"
 			>
-				{/* <Upload getPics={getPics} />
-				<Box mb={4} /> */}
+				<Upload getPics={getPics} />
+				<Box mb={4} />
 				<EasyMasonryComponent data={data} />
 			</Box>
 			<LightBoxComponent data={data} />
