@@ -44,6 +44,8 @@ WORKDIR /app/
 
 ENV NODE_ENV=production
 
+RUN apk add --no-cache vips-dev
+
 COPY --from=deps /app /app
 
 COPY --from=server /app/apps/server/dist /app/apps/server/dist
