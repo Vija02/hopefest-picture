@@ -169,7 +169,7 @@ export default function Page(): JSX.Element {
 	return (
 		<Box bgColor="#F0F2F5">
 			<Stack
-				bgColor="gray.800"
+				bgColor="#1B2829"
 				px={2}
 				py={2}
 				textAlign="center"
@@ -182,7 +182,7 @@ export default function Page(): JSX.Element {
 					display="block"
 					mx={{ base: "initial", sm: "auto" }}
 					marginBottom={{ base: "-15px", sm: "-20px" }}
-					src="https://hopefest.co.uk/images/hf24_logo_white.svg"
+					src="/hf25_logo_white.png"
 					alt=""
 					height={{ base: "65px", sm: "80px", md: "140px" }}
 					marginLeft={{ base: "5px", sm: "-5px" }}
