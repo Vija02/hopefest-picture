@@ -177,16 +177,15 @@ export default function Page(): JSX.Element {
 				pb={{ base: 4, md: 8 }}
 				mb={4}
 				direction={{ base: "row", sm: "column" }}
+				alignItems="center"
 			>
 				<Image
 					display="block"
 					mx={{ base: "initial", sm: "auto" }}
-					marginBottom={{ base: "-15px", sm: "-20px" }}
 					src="/hf25_logo_white.png"
 					alt=""
 					height={{ base: "65px", sm: "80px", md: "140px" }}
-					marginLeft={{ base: "5px", sm: "-5px" }}
-					width={{ base: "initial", sm: "100%" }}
+					width={{ base: "initial", sm: "initial" }}
 				/>
 				<Box display="flex" alignItems="center" justifyContent="center">
 					<Heading
