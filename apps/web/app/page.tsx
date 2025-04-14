@@ -95,7 +95,7 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 		new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
 			endpoint:
 				process.env.NEXT_PUBLIC_TUSD_PATH ||
-				"https://tusd.hopefest.co.uk/files/",
+				"https://tusd25.hopefest.co.uk/files/",
 		}),
 	)
 
