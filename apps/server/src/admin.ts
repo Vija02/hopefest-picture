@@ -18,7 +18,7 @@ export const handleAdmin = (app: Express) => {
 	app.get("/admin", async (req, res) => {
 		const data = await knex("pictures")
 			.select("*")
-			.orderBy("created_at", "desc")
+			.orderBy("exif_created_at", "desc")
 
 		const formatted = data.map((x) => {
 			const fileSplit = x.file_path.split(".")
