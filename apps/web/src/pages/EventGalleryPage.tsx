@@ -29,6 +29,7 @@ import Counter from "yet-another-react-lightbox/plugins/counter";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import { create } from "zustand";
+import { config } from "../config";
 
 interface Event {
   id: number;
@@ -112,9 +113,7 @@ const Upload = ({
 }) => {
   const [uppy] = useState(() =>
     new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
-      endpoint:
-        import.meta.env.VITE_TUSD_PATH ||
-        "https://tusd25.hopefest.co.uk/files/",
+      endpoint: config.tusdPath,
     }),
   );
 

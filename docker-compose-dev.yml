@@ -13,18 +13,11 @@ services:
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
     ports:
       - 8080:8080
-    labels:
-      caddy: tusd.hopefest.co.uk
-      caddy.reverse_proxy: "{{upstreams 8080}}"
-      caddy.reverse_proxy.transport: "http"
-      caddy.reverse_proxy.flush_interval: -1
 
   server:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_TUSD_PATH: http://localhost:8080/files/
     container_name: hf_pics_server
     restart: always
     volumes:
@@ -41,10 +34,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_S3_BUCKET_NAME=$S3_BUCKET
       - AWS_S3_ENDPOINT=$S3_ENDPOINT
-    labels:
-      caddy: pics24.hopefest.co.uk
-      caddy.reverse_proxy: "{{upstreams 5000}}"
-      caddy.reverse_proxy.transport: "http"
+      - TUSD_PATH=$TUSD_PATH
 
 networks:
   caddy:

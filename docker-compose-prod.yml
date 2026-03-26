@@ -33,8 +33,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
       - AWS_S3_BUCKET_NAME=$S3_BUCKET
       - AWS_S3_ENDPOINT=$S3_ENDPOINT
+      - TUSD_PATH=$TUSD_PATH
     labels:
-      caddy: pics24.hopefest.co.uk
+      caddy: pics.hopefest.co.uk
       caddy.reverse_proxy: "{{upstreams 5000}}"
       caddy.reverse_proxy.transport: "http"
 
