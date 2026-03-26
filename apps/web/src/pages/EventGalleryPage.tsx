@@ -490,6 +490,7 @@ export default function EventGalleryPage() {
       .get(`/api/events/${eventSlug}`)
       .then((res) => {
         setEvent(res.data);
+        document.title = `${res.data.name} Gallery`;
         setError(null);
       })
       .catch((err) => {

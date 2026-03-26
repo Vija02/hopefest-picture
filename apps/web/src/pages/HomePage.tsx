@@ -123,6 +123,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    document.title = "Event Gallery";
+  }, []);
+
+  useEffect(() => {
     axios
       .get("/api/events/status/public")
       .then((res) => {
