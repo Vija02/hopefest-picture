@@ -106,16 +106,18 @@ app.all("/tusd_notify", async (req, res) => {
 	if (req.body.Type === "pre-create") {
 		const filenameSplit = req.body.Event.Upload.MetaData.filename.split(".")
 		const extension = filenameSplit[filenameSplit.length - 1]
-		if (!req.body.Event.Upload.MetaData.type.startsWith("image")) {
-			res.status(200).json({
-				RejectUpload: true,
-			})
+		const filename = req.body.Event.Upload.MetaData.filename
+		const fileType = req.body.Event.Upload.MetaData.type
+
+		if (!fileType.startsWith("image")) {
+			console.log(new Date(), `[upload] Rejected ${filename}: not an image`)
+			res.status(200).json({ RejectUpload: true })
 			return
 		}
 
-		// Check if there's an active event accepting uploads
 		const activeEvent = await getActiveEvent()
 		if (!activeEvent) {
+			console.log(new Date(), `[upload] Rejected ${filename}: no active event`)
 			res.status(200).json({
 				RejectUpload: true,
 				HTTPResponse: {
@@ -126,28 +128,30 @@ app.all("/tusd_notify", async (req, res) => {
 			return
 		}
 
-		res.status(200).json({
-			ChangeFileInfo: {
-				ID: `${v4()}.${extension}`,
-			},
-		})
+		const newId = `${v4()}.${extension}`
+		res.status(200).json({ ChangeFileInfo: { ID: newId } })
 		return
 	}
 
 	if (req.body.Type === "post-finish") {
-		// Get the active event to associate with the picture
+		const filename = req.body.Event.Upload.MetaData.filename
+		const storageKey = req.body.Event.Upload.Storage.Key
 		const activeEvent = await getActiveEvent()
 
 		await knex("pictures").insert({
-			name: req.body.Event.Upload.MetaData.filename,
-			file_path: req.body.Event.Upload.Storage.Key,
+			name: filename,
+			file_path: storageKey,
 			is_hidden: false,
 			event_id: activeEvent?.id || null,
 			created_at: new Date(),
 			updated_at: new Date(),
 		})
 
-		await cacheData(req.body.Event.Upload.Storage.Key)
+		await cacheData(storageKey)
+		console.log(
+			new Date(),
+			`[upload] ${filename} -> ${storageKey} (event: ${activeEvent?.name || "none"})`,
+		)
 
 		res.status(200).json({})
 		return
