@@ -1,5 +1,3 @@
-"use client"
-
 import "@uppy/core/dist/style.min.css"
 import "@uppy/dashboard/dist/style.min.css"
 import "yet-another-react-lightbox/styles.css"
@@ -41,7 +39,7 @@ const useSlideStore = create<SlideStoreState>((set) => ({
 	setSlideIndex: (slideIndex: number) => set({ slideIndex }),
 }))
 
-const EasyMasonryComponent = ({ data }: any) => {
+const EasyMasonryComponent = ({ data }: { data: any[] }) => {
 	return <Masonry items={data} columnGutter={8} render={ImgRenderer} />
 }
 
@@ -94,7 +92,7 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 	const [uppy] = useState(() =>
 		new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
 			endpoint:
-				process.env.NEXT_PUBLIC_TUSD_PATH ||
+				import.meta.env.VITE_TUSD_PATH ||
 				"https://tusd25.hopefest.co.uk/files/",
 		}),
 	)
@@ -103,7 +101,7 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 		uppy.on("complete", () => {
 			getPics()
 		})
-	}, [])
+	}, [uppy, getPics])
 
 	const [open, setOpen] = useState(false)
 
@@ -130,7 +128,7 @@ const Upload = ({ getPics }: { getPics: () => void }) => {
 	)
 }
 
-const LightBoxComponent = ({ data }: any) => {
+const LightBoxComponent = ({ data }: { data: any[] }) => {
 	const slideState = useSlideStore()
 
 	return (
@@ -144,15 +142,15 @@ const LightBoxComponent = ({ data }: any) => {
 			}}
 			slides={data.map((x: any) => ({
 				src: x.src,
-				srcSet: calculateSrcSet(x.src, x.width),
+				srcSet: calculateSrcSet(x.src, x.width) as any,
 			}))}
 			plugins={[Counter, Download, Fullscreen, Slideshow]}
 		/>
 	)
 }
 
-export default function Page(): JSX.Element {
-	const [data, setData] = useState([])
+export default function App() {
+	const [data, setData] = useState<any[]>([])
 
 	const getPics = useCallback(() => {
 		axios.get("/pictures").then((res) => {
@@ -162,12 +160,12 @@ export default function Page(): JSX.Element {
 
 	useEffect(() => {
 		getPics()
-	}, [])
+	}, [getPics])
 
 	const breakpoint = useBreakpoint()
 
 	return (
-		<Box bgColor="#F0F2F5">
+		<Box bgColor="#F0F2F5" minH="100vh">
 			<Stack
 				bgColor="#1B2829"
 				px={2}
@@ -206,11 +204,14 @@ export default function Page(): JSX.Element {
 				py="16px"
 				boxShadow="md"
 			>
-				{/* <Upload getPics={getPics} />
-				<Box mb={4} /> */}
+				<Upload getPics={getPics} />
+				<Box mb={4} />
 				<EasyMasonryComponent data={data} />
 			</Box>
 			<LightBoxComponent data={data} />
 		</Box>
 	)
 }
+
+// Export Upload component for potential future use
+export { Upload }
