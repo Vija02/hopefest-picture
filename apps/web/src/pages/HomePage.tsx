@@ -1,24 +1,28 @@
 import {
+  Badge,
   Box,
   Container,
   Heading,
-  SimpleGrid,
-  Text,
-  Badge,
   LinkBox,
   LinkOverlay,
+  SimpleGrid,
+  Text,
   VStack,
 } from "@chakra-ui/react";
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import axios from "axios";
 
 interface Event {
   id: number;
   name: string;
   slug: string;
+  location: string | null;
+  event_start_time: string | null;
+  event_end_time: string | null;
   start_time: string;
   end_time: string;
+  picture_count: number;
 }
 
 const isEventActive = (startTime: string, endTime: string) => {
@@ -30,9 +34,30 @@ const isEventEnded = (endTime: string) => {
   return new Date(endTime) < new Date();
 };
 
+const formatEventDate = (startTime: string | null, endTime: string | null) => {
+  if (!startTime) return null;
+
+  const start = new Date(startTime);
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  };
+
+  if (!endTime || start.toDateString() === new Date(endTime).toDateString()) {
+    return start.toLocaleDateString("en-US", formatOptions);
+  }
+
+  return `${start.toLocaleDateString("en-US", formatOptions)} - ${new Date(endTime).toLocaleDateString("en-US", formatOptions)}`;
+};
+
 const EventCard = ({ event }: { event: Event }) => {
   const active = isEventActive(event.start_time, event.end_time);
   const ended = isEventEnded(event.end_time);
+  const eventDate = formatEventDate(
+    event.event_start_time,
+    event.event_end_time,
+  );
 
   return (
     <LinkBox
@@ -54,10 +79,40 @@ const EventCard = ({ event }: { event: Event }) => {
             {event.name}
           </LinkOverlay>
         </Heading>
-        <Text fontSize="sm" color="gray.600">
-          {new Date(event.start_time).toLocaleDateString()} -{" "}
-          {new Date(event.end_time).toLocaleDateString()}
-        </Text>
+        <VStack align="start" spacing={1}>
+          {eventDate && (
+            <Text
+              fontSize="sm"
+              color="gray.600"
+              display="flex"
+              alignItems="center"
+              gap={1}
+            >
+              <span>📅</span> {eventDate}
+            </Text>
+          )}
+          {event.location && (
+            <Text
+              fontSize="sm"
+              color="gray.600"
+              display="flex"
+              alignItems="center"
+              gap={1}
+            >
+              <span>📍</span> {event.location}
+            </Text>
+          )}
+          <Text
+            fontSize="sm"
+            color="gray.600"
+            display="flex"
+            alignItems="center"
+            gap={1}
+          >
+            <span>📷</span> {event.picture_count}{" "}
+            {event.picture_count === 1 ? "photo" : "photos"}
+          </Text>
+        </VStack>
       </VStack>
     </LinkBox>
   );

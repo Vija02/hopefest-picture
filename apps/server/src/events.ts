@@ -61,7 +61,26 @@ export const handleEvents = (app: Express) => {
       .where("start_time", "<=", now)
       .orderBy("start_time", "desc");
 
-    res.json(events);
+    // Get picture counts for each event
+    const pictureCounts = await knex("pictures")
+      .select("event_id")
+      .count("id as count")
+      .where({ is_hidden: false, is_cached: true })
+      .groupBy("event_id");
+
+    const countMap: Record<number, number> = {};
+    pictureCounts.forEach((row: any) => {
+      if (row.event_id) {
+        countMap[row.event_id] = Number(row.count);
+      }
+    });
+
+    const eventsWithCounts = events.map((event: any) => ({
+      ...event,
+      picture_count: countMap[event.id] || 0,
+    }));
+
+    res.json(eventsWithCounts);
   });
 
   // Create event (admin)
