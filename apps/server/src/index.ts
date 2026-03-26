@@ -1,3 +1,15 @@
+import dotenv from "dotenv"
+import path from "path"
+
+// Load .env from project root
+// In production (compiled), __dirname is /app/apps/server/dist/apps/server/src
+// In development, __dirname is /app/apps/server/src
+const envPath =
+	process.env.NODE_ENV === "production"
+		? path.resolve(__dirname, "../../../../../.env")
+		: path.resolve(__dirname, "../../../.env")
+dotenv.config({ path: envPath })
+
 import bodyParser from "body-parser"
 import cors from "cors"
 import express, { Request } from "express"
@@ -10,7 +22,7 @@ import { handleEvents, getActiveEvent } from "./events"
 
 const app = express()
 const port = process.env.PORT || 5000
-const imgBasePath = process.env.IMG_BASE_PATH
+const imgBasePath = process.env.IMG_BASE_PATH || ""
 const tusdPath = process.env.TUSD_PATH || ""
 
 // HTML transformer to inject server config into the frontend
@@ -58,6 +70,7 @@ app.get("/health", (req, res) => {
 // Get pictures for a specific event by slug
 app.get("/pictures/:eventSlug", async (req, res) => {
 	const { eventSlug } = req.params
+	const sort = (req.query.sort as string) || "photo_date" // "photo_date" or "upload_date"
 
 	// Find the event by slug
 	const event = await knex("events").where({ slug: eventSlug }).first()
@@ -66,10 +79,12 @@ app.get("/pictures/:eventSlug", async (req, res) => {
 		return
 	}
 
+	const orderByColumn =
+		sort === "upload_date" ? "created_at" : "exif_created_at"
 	const data = await knex("pictures")
 		.select("*")
 		.where({ is_hidden: false, is_cached: true, event_id: event.id })
-		.orderBy("exif_created_at", "desc")
+		.orderBy(orderByColumn, "desc")
 
 	const formatted = data.map((x) => {
 		return {

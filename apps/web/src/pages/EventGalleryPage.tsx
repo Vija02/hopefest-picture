@@ -6,6 +6,7 @@ import "yet-another-react-lightbox/plugins/counter.css";
 import {
   Box,
   Button,
+  ButtonGroup,
   Heading,
   Image,
   Stack,
@@ -183,12 +184,15 @@ const isEventActive = (startTime: string, endTime: string) => {
   return new Date(startTime) <= now && new Date(endTime) >= now;
 };
 
+type SortOption = "photo_date" | "upload_date";
+
 export default function EventGalleryPage() {
   const { eventSlug } = useParams<{ eventSlug: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>("photo_date");
 
   const isAcceptingUploads = event
     ? isEventActive(event.start_time, event.end_time)
@@ -196,10 +200,10 @@ export default function EventGalleryPage() {
 
   const getPics = useCallback(() => {
     if (!eventSlug) return;
-    axios.get(`/pictures/${eventSlug}`).then((res) => {
+    axios.get(`/pictures/${eventSlug}?sort=${sortBy}`).then((res) => {
       setData(res.data);
     });
-  }, [eventSlug]);
+  }, [eventSlug, sortBy]);
 
   useEffect(() => {
     if (!eventSlug) return;
@@ -297,13 +301,37 @@ export default function EventGalleryPage() {
         py="16px"
         boxShadow="md"
       >
-        <Box mb={4}>
-          <Button as={RouterLink} to="/" size="sm" variant="ghost" mb={4}>
-            &larr; All Events
-          </Button>
-        </Box>
         <Upload getPics={getPics} isAcceptingUploads={isAcceptingUploads} />
         <Box mb={4} />
+        {data.length > 0 && (
+          <Box
+            mb={4}
+            display="flex"
+            justifyContent="flex-end"
+            alignItems="center"
+            gap={2}
+          >
+            <Text fontSize="sm" color="gray.600">
+              Sort by:
+            </Text>
+            <ButtonGroup size="sm" isAttached variant="outline">
+              <Button
+                onClick={() => setSortBy("photo_date")}
+                colorScheme={sortBy === "photo_date" ? "blue" : "gray"}
+                variant={sortBy === "photo_date" ? "solid" : "outline"}
+              >
+                Photo Date
+              </Button>
+              <Button
+                onClick={() => setSortBy("upload_date")}
+                colorScheme={sortBy === "upload_date" ? "blue" : "gray"}
+                variant={sortBy === "upload_date" ? "solid" : "outline"}
+              >
+                Recent Uploads
+              </Button>
+            </ButtonGroup>
+          </Box>
+        )}
         {data.length === 0 ? (
           <Box textAlign="center" py={8}>
             <Text color="gray.500">No photos yet. Be the first to upload!</Text>
