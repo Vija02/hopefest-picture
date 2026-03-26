@@ -7,7 +7,6 @@ import {
   Heading,
   Image,
   Spinner,
-  Stack,
   Text,
   useBreakpoint,
 } from "@chakra-ui/react";
@@ -97,6 +96,7 @@ interface Event {
   start_time: string;
   end_time: string;
   background_image: string | null;
+  logo: string | null;
 }
 
 const calculateSrcSet = (src: string, imgWidth: number) => {
@@ -333,6 +333,8 @@ const MyUploadsSection = ({
         onClick={() => setIsOpen(!isOpen)}
         mb={2}
         px={2}
+        w="100%"
+        justifyContent="flex-start"
         display="flex"
         alignItems="center"
         gap={2}
@@ -559,8 +561,6 @@ export default function EventGalleryPage() {
     };
   }, [eventSlug]);
 
-  const breakpoint = useBreakpoint();
-
   if (loading) {
     return (
       <Center minH="100vh" bgColor="#F0F2F5">
@@ -594,16 +594,13 @@ export default function EventGalleryPage() {
 
   return (
     <Box bgColor="#F0F2F5" minH="100vh">
-      <Stack
+      <Box
         bgColor="#1B2829"
-        px={2}
-        py={2}
+        px={{ base: 4, md: 6 }}
+        py={{ base: 4, md: 6 }}
         textAlign="center"
         color="gray.100"
-        pb={{ base: 4, md: 8 }}
         mb={4}
-        direction={{ base: "row", sm: "column" }}
-        alignItems="center"
         backgroundImage={
           event.background_image ? `url(${event.background_image})` : undefined
         }
@@ -623,30 +620,34 @@ export default function EventGalleryPage() {
               }
             : undefined
         }
-        sx={{ "& > *": { position: "relative", zIndex: 1 } }}
       >
-        <Image
-          display="block"
-          mx={{ base: "initial", sm: "auto" }}
-          src="/hf25_logo_white.png"
-          alt=""
-          height={{ base: "65px", sm: "80px", md: "140px" }}
-          width={{ base: "initial", sm: "initial" }}
-        />
         <Box
+          position="relative"
+          zIndex={1}
+          maxW="800px"
+          mx="auto"
           display="flex"
-          alignItems="center"
-          justifyContent="center"
           flexDirection="column"
+          alignItems="center"
+          gap={{ base: 2, md: 4 }}
         >
+          {event.logo && (
+            <Image
+              src={event.logo}
+              alt=""
+              maxH={{ base: "60px", sm: "80px", md: "120px" }}
+              maxW={{ base: "200px", sm: "280px", md: "400px" }}
+              objectFit="contain"
+            />
+          )}
           <Heading
-            mb={{ base: "-15px", sm: "initial" }}
-            fontSize={{ base: "xl", sm: "sm", md: "xl" }}
+            fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
+            fontWeight="bold"
           >
-            {breakpoint === "base" ? event.name : `${event.name} GALLERY`}
+            {event.name} GALLERY
           </Heading>
           {(event.location || event.event_start_time) && (
-            <Box mt={2} fontSize={{ base: "sm", md: "md" }} color="gray.300">
+            <Box fontSize={{ base: "sm", md: "md" }} color="gray.300">
               {event.location && (
                 <Text
                   display="flex"
@@ -689,7 +690,7 @@ export default function EventGalleryPage() {
             </Box>
           )}
         </Box>
-      </Stack>
+      </Box>
       <Box
         bgColor="white"
         maxW={1210}

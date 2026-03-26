@@ -12,6 +12,7 @@ export interface Event {
   start_time: string;
   end_time: string;
   background_image: string | null;
+  logo: string | null;
   created_at: string;
   updated_at: string;
 }

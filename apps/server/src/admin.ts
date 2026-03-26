@@ -46,6 +46,11 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
 });
 
+const eventUpload = upload.fields([
+  { name: "background_image", maxCount: 1 },
+  { name: "logo", maxCount: 1 },
+]);
+
 // Helper to format date for datetime-local input
 const formatDateForInput = (date: string | null) => {
   if (!date) return "";
@@ -79,36 +84,127 @@ export const handleAdmin = (app: Express) => {
   });
 
   // Create event
-  app.post(
-    "/admin/events/create",
-    upload.single("background_image") as any,
-    async (req, res) => {
-      const {
-        name,
-        slug,
-        location,
-        event_start_time,
-        event_end_time,
-        start_time,
-        end_time,
-      } = req.body;
+  app.post("/admin/events/create", eventUpload as any, async (req, res) => {
+    const {
+      name,
+      slug,
+      location,
+      event_start_time,
+      event_end_time,
+      start_time,
+      end_time,
+    } = req.body;
 
-      if (!name || !slug || !start_time || !end_time) {
-        res.status(400).send("Missing required fields");
-        return;
-      }
+    if (!name || !slug || !start_time || !end_time) {
+      res.status(400).send("Missing required fields");
+      return;
+    }
 
-      // Check if slug already exists
-      const existing = await knex("events").where({ slug }).first();
-      if (existing) {
+    // Check if slug already exists
+    const existing = await knex("events").where({ slug }).first();
+    if (existing) {
+      res.status(400).send("Slug already exists");
+      return;
+    }
+
+    // Get uploaded files
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const backgroundImage = files?.background_image?.[0]
+      ? `/uploads/${files.background_image[0].filename}`
+      : null;
+    const logo = files?.logo?.[0] ? `/uploads/${files.logo[0].filename}` : null;
+
+    await knex("events").insert({
+      name,
+      slug,
+      location: location || null,
+      event_start_time: event_start_time
+        ? new Date(event_start_time).toISOString()
+        : null,
+      event_end_time: event_end_time
+        ? new Date(event_end_time).toISOString()
+        : null,
+      start_time: new Date(start_time).toISOString(),
+      end_time: new Date(end_time).toISOString(),
+      background_image: backgroundImage,
+      logo: logo,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    res.redirect("/admin/events");
+  });
+
+  // Helper to handle file removal
+  const deleteUploadedFile = (filePath: string | null) => {
+    if (!filePath) return;
+    const filename = filePath.replace(/^\/uploads\//, "");
+    const fullPath = path.join(getUploadPath(), filename);
+    if (fs.existsSync(fullPath)) {
+      fs.unlinkSync(fullPath);
+    }
+  };
+
+  // Update event
+  app.post("/admin/events/update/:id", eventUpload as any, async (req, res) => {
+    const { id } = req.params;
+    const {
+      name,
+      slug,
+      location,
+      event_start_time,
+      event_end_time,
+      start_time,
+      end_time,
+      remove_background,
+      remove_logo,
+    } = req.body;
+
+    // Check if event exists
+    const existing = await knex("events").where({ id }).first();
+    if (!existing) {
+      res.status(404).send("Event not found");
+      return;
+    }
+
+    // Check if slug is taken by another event
+    if (slug !== existing.slug) {
+      const slugExists = await knex("events")
+        .where({ slug })
+        .whereNot({ id })
+        .first();
+      if (slugExists) {
         res.status(400).send("Slug already exists");
         return;
       }
+    }
 
-      // Get background image path if uploaded
-      const backgroundImage = req.file ? `/uploads/${req.file.filename}` : null;
+    // Get uploaded files
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-      await knex("events").insert({
+    // Handle background image
+    let backgroundImage = existing.background_image;
+    if (files?.background_image?.[0]) {
+      deleteUploadedFile(existing.background_image);
+      backgroundImage = `/uploads/${files.background_image[0].filename}`;
+    } else if (remove_background === "1") {
+      deleteUploadedFile(existing.background_image);
+      backgroundImage = null;
+    }
+
+    // Handle logo
+    let logo = existing.logo;
+    if (files?.logo?.[0]) {
+      deleteUploadedFile(existing.logo);
+      logo = `/uploads/${files.logo[0].filename}`;
+    } else if (remove_logo === "1") {
+      deleteUploadedFile(existing.logo);
+      logo = null;
+    }
+
+    await knex("events")
+      .where({ id })
+      .update({
         name,
         slug,
         location: location || null,
@@ -121,102 +217,12 @@ export const handleAdmin = (app: Express) => {
         start_time: new Date(start_time).toISOString(),
         end_time: new Date(end_time).toISOString(),
         background_image: backgroundImage,
-        created_at: new Date().toISOString(),
+        logo: logo,
         updated_at: new Date().toISOString(),
       });
 
-      res.redirect("/admin/events");
-    },
-  );
-
-  // Update event
-  app.post(
-    "/admin/events/update/:id",
-    upload.single("background_image") as any,
-    async (req, res) => {
-      const { id } = req.params;
-      const {
-        name,
-        slug,
-        location,
-        event_start_time,
-        event_end_time,
-        start_time,
-        end_time,
-        remove_background,
-      } = req.body;
-
-      // Check if event exists
-      const existing = await knex("events").where({ id }).first();
-      if (!existing) {
-        res.status(404).send("Event not found");
-        return;
-      }
-
-      // Check if slug is taken by another event
-      if (slug !== existing.slug) {
-        const slugExists = await knex("events")
-          .where({ slug })
-          .whereNot({ id })
-          .first();
-        if (slugExists) {
-          res.status(400).send("Slug already exists");
-          return;
-        }
-      }
-
-      // Handle background image
-      let backgroundImage = existing.background_image;
-      if (req.file) {
-        // New file uploaded
-        backgroundImage = `/uploads/${req.file.filename}`;
-        // Delete old file if exists
-        if (existing.background_image) {
-          const oldFilename = existing.background_image.replace(
-            /^\/uploads\//,
-            "",
-          );
-          const oldPath = path.join(getUploadPath(), oldFilename);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        }
-      } else if (remove_background === "1") {
-        // Remove background requested
-        if (existing.background_image) {
-          const oldFilename = existing.background_image.replace(
-            /^\/uploads\//,
-            "",
-          );
-          const oldPath = path.join(getUploadPath(), oldFilename);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        }
-        backgroundImage = null;
-      }
-
-      await knex("events")
-        .where({ id })
-        .update({
-          name,
-          slug,
-          location: location || null,
-          event_start_time: event_start_time
-            ? new Date(event_start_time).toISOString()
-            : null,
-          event_end_time: event_end_time
-            ? new Date(event_end_time).toISOString()
-            : null,
-          start_time: new Date(start_time).toISOString(),
-          end_time: new Date(end_time).toISOString(),
-          background_image: backgroundImage,
-          updated_at: new Date().toISOString(),
-        });
-
-      res.redirect("/admin/events");
-    },
-  );
+    res.redirect("/admin/events");
+  });
 
   // Delete event
   app.post("/admin/events/delete/:id", async (req, res) => {
@@ -328,6 +334,10 @@ export const handleAdmin = (app: Express) => {
 								<input type="text" name="location" placeholder="e.g., ExCeL London" />
 							</div>
 							<div class="form-group">
+								<label>Logo (optional)</label>
+								<input type="file" name="logo" accept="image/*" />
+							</div>
+							<div class="form-group">
 								<label>Background Image (optional)</label>
 								<input type="file" name="background_image" accept="image/*" />
 							</div>
@@ -398,6 +408,11 @@ export const handleAdmin = (app: Express) => {
 										<div class="form-group">
 											<label>Location</label>
 											<input type="text" name="location" value="${event.location || ""}" />
+										</div>
+										<div class="form-group">
+											<label>Logo</label>
+											${event.logo ? `<div style="margin-bottom: 8px;"><img src="${event.logo}" style="max-width: 100px; max-height: 60px; border-radius: 4px; background: #1B2829; padding: 4px;" /><br><label style="font-weight: normal;"><input type="checkbox" name="remove_logo" value="1" /> Remove logo</label></div>` : ""}
+											<input type="file" name="logo" accept="image/*" />
 										</div>
 										<div class="form-group">
 											<label>Background Image</label>
