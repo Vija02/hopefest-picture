@@ -1,10 +1,50 @@
 import { Express } from "express";
+import fs from "fs";
+import multer from "multer";
+import path from "path";
 
 import { knex } from "./database";
 
 // Note: imgBasePath is a getter function because this module is imported
 // before dotenv.config() is called in index.ts
 const getImgBasePath = () => process.env.IMG_BASE_PATH || "";
+
+// Configure multer for background image uploads
+const getUploadPath = () => {
+  const isProduction = process.env.NODE_ENV === "production";
+  // Store in /uploads at project root
+  return isProduction
+    ? path.resolve(__dirname, "../../../../../../uploads")
+    : path.resolve(__dirname, "../../../uploads");
+};
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const uploadPath = getUploadPath();
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, `bg-${uniqueSuffix}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+});
 
 // Helper to format date for datetime-local input
 const formatDateForInput = (date: string | null) => {
@@ -39,69 +79,144 @@ export const handleAdmin = (app: Express) => {
   });
 
   // Create event
-  app.post("/admin/events/create", async (req, res) => {
-    const { name, slug, start_time, end_time } = req.body;
+  app.post(
+    "/admin/events/create",
+    upload.single("background_image") as any,
+    async (req, res) => {
+      const {
+        name,
+        slug,
+        location,
+        event_start_time,
+        event_end_time,
+        start_time,
+        end_time,
+      } = req.body;
 
-    if (!name || !slug || !start_time || !end_time) {
-      res.status(400).send("Missing required fields");
-      return;
-    }
+      if (!name || !slug || !start_time || !end_time) {
+        res.status(400).send("Missing required fields");
+        return;
+      }
 
-    // Check if slug already exists
-    const existing = await knex("events").where({ slug }).first();
-    if (existing) {
-      res.status(400).send("Slug already exists");
-      return;
-    }
-
-    await knex("events").insert({
-      name,
-      slug,
-      start_time: new Date(start_time).toISOString(),
-      end_time: new Date(end_time).toISOString(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-
-    res.redirect("/admin/events");
-  });
-
-  // Update event
-  app.post("/admin/events/update/:id", async (req, res) => {
-    const { id } = req.params;
-    const { name, slug, start_time, end_time } = req.body;
-
-    // Check if event exists
-    const existing = await knex("events").where({ id }).first();
-    if (!existing) {
-      res.status(404).send("Event not found");
-      return;
-    }
-
-    // Check if slug is taken by another event
-    if (slug !== existing.slug) {
-      const slugExists = await knex("events")
-        .where({ slug })
-        .whereNot({ id })
-        .first();
-      if (slugExists) {
+      // Check if slug already exists
+      const existing = await knex("events").where({ slug }).first();
+      if (existing) {
         res.status(400).send("Slug already exists");
         return;
       }
-    }
 
-    await knex("events")
-      .where({ id })
-      .update({
+      // Get background image path if uploaded
+      const backgroundImage = req.file ? `/uploads/${req.file.filename}` : null;
+
+      await knex("events").insert({
         name,
         slug,
+        location: location || null,
+        event_start_time: event_start_time
+          ? new Date(event_start_time).toISOString()
+          : null,
+        event_end_time: event_end_time
+          ? new Date(event_end_time).toISOString()
+          : null,
         start_time: new Date(start_time).toISOString(),
         end_time: new Date(end_time).toISOString(),
+        background_image: backgroundImage,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
 
-    res.redirect("/admin/events");
-  });
+      res.redirect("/admin/events");
+    },
+  );
+
+  // Update event
+  app.post(
+    "/admin/events/update/:id",
+    upload.single("background_image") as any,
+    async (req, res) => {
+      const { id } = req.params;
+      const {
+        name,
+        slug,
+        location,
+        event_start_time,
+        event_end_time,
+        start_time,
+        end_time,
+        remove_background,
+      } = req.body;
+
+      // Check if event exists
+      const existing = await knex("events").where({ id }).first();
+      if (!existing) {
+        res.status(404).send("Event not found");
+        return;
+      }
+
+      // Check if slug is taken by another event
+      if (slug !== existing.slug) {
+        const slugExists = await knex("events")
+          .where({ slug })
+          .whereNot({ id })
+          .first();
+        if (slugExists) {
+          res.status(400).send("Slug already exists");
+          return;
+        }
+      }
+
+      // Handle background image
+      let backgroundImage = existing.background_image;
+      if (req.file) {
+        // New file uploaded
+        backgroundImage = `/uploads/${req.file.filename}`;
+        // Delete old file if exists
+        if (existing.background_image) {
+          const oldFilename = existing.background_image.replace(
+            /^\/uploads\//,
+            "",
+          );
+          const oldPath = path.join(getUploadPath(), oldFilename);
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+          }
+        }
+      } else if (remove_background === "1") {
+        // Remove background requested
+        if (existing.background_image) {
+          const oldFilename = existing.background_image.replace(
+            /^\/uploads\//,
+            "",
+          );
+          const oldPath = path.join(getUploadPath(), oldFilename);
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+          }
+        }
+        backgroundImage = null;
+      }
+
+      await knex("events")
+        .where({ id })
+        .update({
+          name,
+          slug,
+          location: location || null,
+          event_start_time: event_start_time
+            ? new Date(event_start_time).toISOString()
+            : null,
+          event_end_time: event_end_time
+            ? new Date(event_end_time).toISOString()
+            : null,
+          start_time: new Date(start_time).toISOString(),
+          end_time: new Date(end_time).toISOString(),
+          background_image: backgroundImage,
+          updated_at: new Date().toISOString(),
+        });
+
+      res.redirect("/admin/events");
+    },
+  );
 
   // Delete event
   app.post("/admin/events/delete/:id", async (req, res) => {
@@ -199,7 +314,7 @@ export const handleAdmin = (app: Express) => {
 					
 					<div class="card">
 						<h2>Create New Event</h2>
-						<form action="/admin/events/create" method="POST">
+						<form action="/admin/events/create" method="POST" enctype="multipart/form-data">
 							<div class="form-group">
 								<label>Event Name</label>
 								<input type="text" name="name" required placeholder="e.g., Hope Fest UK 2025" />
@@ -209,11 +324,29 @@ export const handleAdmin = (app: Express) => {
 								<input type="text" name="slug" required placeholder="e.g., hopefest-2025" pattern="[a-z0-9-]+" title="Lowercase letters, numbers, and hyphens only" />
 							</div>
 							<div class="form-group">
-								<label>Start Time</label>
+								<label>Location (optional)</label>
+								<input type="text" name="location" placeholder="e.g., ExCeL London" />
+							</div>
+							<div class="form-group">
+								<label>Background Image (optional)</label>
+								<input type="file" name="background_image" accept="image/*" />
+							</div>
+							<h4 style="margin-top: 20px; margin-bottom: 10px; color: #555;">Event Times (displayed to users)</h4>
+							<div class="form-group">
+								<label>Event Start Time (optional)</label>
+								<input type="datetime-local" name="event_start_time" />
+							</div>
+							<div class="form-group">
+								<label>Event End Time (optional)</label>
+								<input type="datetime-local" name="event_end_time" />
+							</div>
+							<h4 style="margin-top: 20px; margin-bottom: 10px; color: #555;">Upload Window (when photos can be uploaded)</h4>
+							<div class="form-group">
+								<label>Upload Opens</label>
 								<input type="datetime-local" name="start_time" required />
 							</div>
 							<div class="form-group">
-								<label>End Time</label>
+								<label>Upload Closes</label>
 								<input type="datetime-local" name="end_time" required />
 							</div>
 							<button type="submit" class="btn btn-primary">Create Event</button>
@@ -231,9 +364,10 @@ export const handleAdmin = (app: Express) => {
 								</span>
 								<div class="event-name">${event.name}</div>
 								<div class="event-slug">/${event.slug}</div>
+								${event.location ? `<div style="font-size: 14px; color: #666; margin-bottom: 5px;">📍 ${event.location}</div>` : ""}
+								${event.event_start_time ? `<div style="font-size: 14px; color: #555; margin-bottom: 5px;"><strong>Event:</strong> ${new Date(event.event_start_time).toLocaleString()}${event.event_end_time ? ` - ${new Date(event.event_end_time).toLocaleString()}` : ""}</div>` : ""}
 								<div class="event-dates">
-									<strong>Start:</strong> ${new Date(event.start_time).toLocaleString()}<br>
-									<strong>End:</strong> ${new Date(event.end_time).toLocaleString()}
+									<strong>Uploads:</strong> ${new Date(event.start_time).toLocaleString()} - ${new Date(event.end_time).toLocaleString()}
 								</div>
 								<div class="event-pics">${event.pictureCount} pictures</div>
 								
@@ -252,7 +386,7 @@ export const handleAdmin = (app: Express) => {
 								
 								<details>
 									<summary>Edit Event</summary>
-									<form class="edit-form" action="/admin/events/update/${event.id}" method="POST">
+									<form class="edit-form" action="/admin/events/update/${event.id}" method="POST" enctype="multipart/form-data">
 										<div class="form-group">
 											<label>Event Name</label>
 											<input type="text" name="name" value="${event.name}" required />
@@ -262,11 +396,30 @@ export const handleAdmin = (app: Express) => {
 											<input type="text" name="slug" value="${event.slug}" required pattern="[a-z0-9-]+" />
 										</div>
 										<div class="form-group">
-											<label>Start Time</label>
+											<label>Location</label>
+											<input type="text" name="location" value="${event.location || ""}" />
+										</div>
+										<div class="form-group">
+											<label>Background Image</label>
+											${event.background_image ? `<div style="margin-bottom: 8px;"><img src="${event.background_image}" style="max-width: 200px; max-height: 100px; border-radius: 4px;" /><br><label style="font-weight: normal;"><input type="checkbox" name="remove_background" value="1" /> Remove background</label></div>` : ""}
+											<input type="file" name="background_image" accept="image/*" />
+										</div>
+										<h4 style="margin-top: 15px; margin-bottom: 10px; color: #555; font-size: 14px;">Event Times</h4>
+										<div class="form-group">
+											<label>Event Start Time</label>
+											<input type="datetime-local" name="event_start_time" value="${formatDateForInput(event.event_start_time)}" />
+										</div>
+										<div class="form-group">
+											<label>Event End Time</label>
+											<input type="datetime-local" name="event_end_time" value="${formatDateForInput(event.event_end_time)}" />
+										</div>
+										<h4 style="margin-top: 15px; margin-bottom: 10px; color: #555; font-size: 14px;">Upload Window</h4>
+										<div class="form-group">
+											<label>Upload Opens</label>
 											<input type="datetime-local" name="start_time" value="${formatDateForInput(event.start_time)}" required />
 										</div>
 										<div class="form-group">
-											<label>End Time</label>
+											<label>Upload Closes</label>
 											<input type="datetime-local" name="end_time" value="${formatDateForInput(event.end_time)}" required />
 										</div>
 										<button type="submit" class="btn btn-primary">Update Event</button>

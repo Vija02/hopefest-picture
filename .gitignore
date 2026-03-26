@@ -38,3 +38,5 @@ yarn-error.log*
 *.pem
 
 *.sqlite3
+
+uploads

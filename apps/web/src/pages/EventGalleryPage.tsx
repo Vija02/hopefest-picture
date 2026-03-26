@@ -91,8 +91,12 @@ interface Event {
   id: number;
   name: string;
   slug: string;
+  location: string | null;
+  event_start_time: string | null;
+  event_end_time: string | null;
   start_time: string;
   end_time: string;
+  background_image: string | null;
 }
 
 const calculateSrcSet = (src: string, imgWidth: number) => {
@@ -600,6 +604,26 @@ export default function EventGalleryPage() {
         mb={4}
         direction={{ base: "row", sm: "column" }}
         alignItems="center"
+        backgroundImage={
+          event.background_image ? `url(${event.background_image})` : undefined
+        }
+        backgroundSize="cover"
+        backgroundPosition="center"
+        position="relative"
+        _before={
+          event.background_image
+            ? {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bg: "rgba(27, 40, 41, 0.3)",
+              }
+            : undefined
+        }
+        sx={{ "& > *": { position: "relative", zIndex: 1 } }}
       >
         <Image
           display="block"
@@ -609,13 +633,61 @@ export default function EventGalleryPage() {
           height={{ base: "65px", sm: "80px", md: "140px" }}
           width={{ base: "initial", sm: "initial" }}
         />
-        <Box display="flex" alignItems="center" justifyContent="center">
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          flexDirection="column"
+        >
           <Heading
             mb={{ base: "-15px", sm: "initial" }}
             fontSize={{ base: "xl", sm: "sm", md: "xl" }}
           >
             {breakpoint === "base" ? event.name : `${event.name} GALLERY`}
           </Heading>
+          {(event.location || event.event_start_time) && (
+            <Box mt={2} fontSize={{ base: "sm", md: "md" }} color="gray.300">
+              {event.location && (
+                <Text
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  gap={1}
+                >
+                  <span>📍</span> {event.location}
+                </Text>
+              )}
+              {event.event_start_time && (
+                <Text
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  gap={1}
+                >
+                  <span>📅</span>
+                  {new Date(event.event_start_time).toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )}
+                  {event.event_end_time &&
+                    new Date(event.event_start_time).toDateString() !==
+                      new Date(event.event_end_time).toDateString() &&
+                    ` - ${new Date(event.event_end_time).toLocaleDateString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      },
+                    )}`}
+                </Text>
+              )}
+            </Box>
+          )}
         </Box>
       </Stack>
       <Box

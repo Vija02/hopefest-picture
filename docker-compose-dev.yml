@@ -20,6 +20,7 @@ services:
     restart: always
     volumes:
       - ./db:/app/db
+      - ./uploads:/app/uploads
     ports:
       - 5000:5000
     environment:

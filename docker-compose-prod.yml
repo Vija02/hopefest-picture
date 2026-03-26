@@ -23,6 +23,7 @@ services:
     restart: always
     volumes:
       - ./db:/app/db
+      - ./uploads:/app/uploads
     networks:
       - caddy
     environment:

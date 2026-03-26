@@ -75,6 +75,12 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve uploaded files from /uploads
+const uploadsPath = isProduction
+  ? path.resolve(__dirname, "../../../../../../uploads")
+  : path.resolve(__dirname, "../../../uploads");
+app.use("/uploads", express.static(uploadsPath));
+
 app.get("/health", (req, res) => {
   res.status(200).send("Ok");
 });
