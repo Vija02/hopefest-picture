@@ -140,6 +140,7 @@ app.get("/pictures/:eventSlug", async (req, res) => {
       src: `${imgBasePath}${x.file_path}`,
       size: { width: x.width, height: x.height },
       createdAt: x.created_at,
+      exifCreatedAt: x.exif_created_at,
       uploaderId: x.uploader_id,
     };
   });
@@ -223,6 +224,7 @@ app.all("/tusd_notify", async (req, res) => {
         src: `${imgBasePath}${picture.file_path}`,
         size: { width: picture.width, height: picture.height },
         createdAt: picture.created_at,
+        exifCreatedAt: picture.exif_created_at,
         uploaderId: picture.uploader_id,
       });
     }

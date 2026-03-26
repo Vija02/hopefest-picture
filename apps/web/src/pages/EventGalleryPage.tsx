@@ -33,6 +33,55 @@ import "yet-another-react-lightbox/styles.css";
 
 import { config, getUserId } from "../config";
 
+// Helper to group pictures by date (for photo_date sorting)
+const UNKNOWN_DATE_KEY = "unknown";
+
+const groupByDate = (
+  pictures: any[],
+): { date: string; label: string; pictures: any[] }[] => {
+  const groups: Record<string, any[]> = {};
+
+  pictures.forEach((pic) => {
+    // Only use exifCreatedAt for grouping (photo date from EXIF data)
+    const dateStr = pic.exifCreatedAt;
+    let dateKey = UNKNOWN_DATE_KEY;
+
+    if (dateStr) {
+      const date = new Date(dateStr);
+      // Check if date is valid
+      if (!isNaN(date.getTime())) {
+        dateKey = date.toISOString().split("T")[0] as string; // YYYY-MM-DD
+      }
+    }
+
+    if (!groups[dateKey]) {
+      groups[dateKey] = [];
+    }
+    groups[dateKey].push(pic);
+  });
+
+  // Sort by date descending, with "unknown" at the bottom
+  return Object.entries(groups)
+    .sort(([a], [b]) => {
+      if (a === UNKNOWN_DATE_KEY) return 1;
+      if (b === UNKNOWN_DATE_KEY) return -1;
+      return b.localeCompare(a);
+    })
+    .map(([dateKey, pics]) => {
+      if (dateKey === UNKNOWN_DATE_KEY) {
+        return { date: dateKey, label: "Unknown", pictures: pics };
+      }
+      const date = new Date(dateKey + "T00:00:00");
+      const label = date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      return { date: dateKey, label, pictures: pics };
+    });
+};
+
 // Flash highlight animation
 const flashAnimation = keyframes`
   0% { box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.8); }
@@ -311,6 +360,97 @@ const MyUploadsSection = ({
   );
 };
 
+// Component to render pictures grouped by day
+const GroupedByDayGallery = ({
+  data,
+  title,
+  sortBy,
+  setSortBy,
+  highlightedIds,
+}: {
+  data: any[];
+  title?: string;
+  sortBy: "photo_date" | "upload_date";
+  setSortBy: (sort: "photo_date" | "upload_date") => void;
+  highlightedIds?: Set<number>;
+}) => {
+  const groups = groupByDate(data);
+
+  return (
+    <Box>
+      {/* Sort controls at the top */}
+      <Box
+        mb={4}
+        display="flex"
+        flexDirection={{ base: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ base: "flex-start", sm: "center" }}
+        gap={2}
+      >
+        {title && (
+          <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+            {title} ({data.length})
+          </Text>
+        )}
+        <Box display="flex" alignItems="center" gap={2}>
+          <Text
+            fontSize="sm"
+            color="gray.600"
+            display={{ base: "none", sm: "block" }}
+          >
+            Sort by:
+          </Text>
+          <ButtonGroup size="sm" isAttached variant="outline">
+            <Button
+              onClick={() => setSortBy("photo_date")}
+              colorScheme={sortBy === "photo_date" ? "blue" : "gray"}
+              variant={sortBy === "photo_date" ? "solid" : "outline"}
+              fontSize={{ base: "xs", sm: "sm" }}
+              px={{ base: 2, sm: 3 }}
+            >
+              Photo Date
+            </Button>
+            <Button
+              onClick={() => setSortBy("upload_date")}
+              colorScheme={sortBy === "upload_date" ? "blue" : "gray"}
+              variant={sortBy === "upload_date" ? "solid" : "outline"}
+              fontSize={{ base: "xs", sm: "sm" }}
+              px={{ base: 2, sm: 3 }}
+            >
+              Recent Uploads
+            </Button>
+          </ButtonGroup>
+        </Box>
+      </Box>
+
+      {/* Grouped sections */}
+      {groups.map((group) => (
+        <Box key={group.date} mb={6}>
+          <Text
+            fontSize="md"
+            fontWeight="medium"
+            color="gray.600"
+            mb={2}
+            pb={1}
+            borderBottom="1px solid"
+            borderColor="gray.200"
+            position="sticky"
+            top={0}
+            bg="white"
+            zIndex={10}
+            py={2}
+            mx={-2}
+            px={2}
+          >
+            {group.label}
+          </Text>
+          <Gallery data={group.pictures} highlightedIds={highlightedIds} />
+        </Box>
+      ))}
+    </Box>
+  );
+};
+
 const isEventActive = (startTime: string, endTime: string) => {
   const now = new Date();
   return new Date(startTime) <= now && new Date(endTime) >= now;
@@ -510,6 +650,14 @@ export default function EventGalleryPage() {
           <Box textAlign="center" py={8}>
             <Text color="gray.500">No photos yet. Be the first to upload!</Text>
           </Box>
+        ) : sortBy === "photo_date" ? (
+          <GroupedByDayGallery
+            data={otherUploads}
+            title={myUploads.length > 0 ? "All Photos" : undefined}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            highlightedIds={highlightedIds}
+          />
         ) : (
           <Gallery
             data={otherUploads}
@@ -517,6 +665,7 @@ export default function EventGalleryPage() {
             showSortControls={true}
             sortBy={sortBy}
             setSortBy={setSortBy}
+            highlightedIds={highlightedIds}
           />
         )}
       </Box>
