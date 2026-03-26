@@ -5,7 +5,7 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "lint": "turbo lint",
-    "migrate": "knex migrate:latest",
+    "migrate": "tsx node_modules/.bin/knex migrate:latest",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "postinstall": "patch-package"
   },
@@ -25,5 +25,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "tsx": "^4.21.0"
+  }
 }
