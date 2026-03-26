@@ -1,7 +1,10 @@
 import { Express } from "express";
+
 import { knex } from "./database";
 
-const imgBasePath = process.env.IMG_BASE_PATH;
+// Note: imgBasePath is a getter function because this module is imported
+// before dotenv.config() is called in index.ts
+const getImgBasePath = () => process.env.IMG_BASE_PATH || "";
 
 // Helper to format date for datetime-local input
 const formatDateForInput = (date: string | null) => {
@@ -285,6 +288,12 @@ export const handleAdmin = (app: Express) => {
   // Admin pictures page (updated to support filtering by event)
   app.get("/admin/pictures/:eventId?", async (req, res) => {
     const { eventId } = req.params;
+    const sort = (req.query.sort as string) || "photo_date"; // "photo_date" or "upload_date"
+
+    const orderByColumn =
+      sort === "upload_date"
+        ? "pictures.created_at"
+        : "pictures.exif_created_at";
 
     let query = knex("pictures")
       .select(
@@ -293,7 +302,7 @@ export const handleAdmin = (app: Express) => {
         "events.slug as event_slug",
       )
       .leftJoin("events", "pictures.event_id", "events.id")
-      .orderBy("pictures.exif_created_at", "desc");
+      .orderBy(orderByColumn, "desc");
 
     if (eventId) {
       query = query.where({ event_id: eventId });
@@ -312,7 +321,7 @@ export const handleAdmin = (app: Express) => {
       const fileExtension = fileSplit[fileSplit.length - 1];
       return {
         id: x.id,
-        src: `${imgBasePath}${fileName}-320.${fileExtension}`,
+        src: `${getImgBasePath()}${fileName}-320.${fileExtension}`,
         isHidden: x.is_hidden,
         createdAt: x.created_at,
         eventName: x.event_name || "No Event",
@@ -354,7 +363,7 @@ export const handleAdmin = (app: Express) => {
 					
 					<div class="filter-bar">
 						<label>Filter by Event: </label>
-						<select onchange="window.location.href = this.value ? '/admin/pictures/' + this.value : '/admin/pictures'">
+						<select onchange="updateUrl()">
 							<option value="">All Events</option>
 							${events
                 .map(
@@ -364,6 +373,26 @@ export const handleAdmin = (app: Express) => {
                 )
                 .join("")}
 						</select>
+						
+						<label style="margin-left: 20px;">Sort by: </label>
+						<select id="sortSelect" onchange="updateUrl()">
+							<option value="photo_date" ${sort === "photo_date" ? "selected" : ""}>Photo Date</option>
+							<option value="upload_date" ${sort === "upload_date" ? "selected" : ""}>Upload Date</option>
+						</select>
+						
+						<script>
+							function updateUrl() {
+								const eventSelect = document.querySelector('.filter-bar select:first-of-type');
+								const sortSelect = document.getElementById('sortSelect');
+								const eventId = eventSelect.value;
+								const sort = sortSelect.value;
+								let url = eventId ? '/admin/pictures/' + eventId : '/admin/pictures';
+								if (sort !== 'photo_date') {
+									url += '?sort=' + sort;
+								}
+								window.location.href = url;
+							}
+						</script>
 					</div>
 					
 					<div class="grid">

@@ -1,6 +1,4 @@
 import {
-  Alert,
-  AlertIcon,
   Box,
   Button,
   ButtonGroup,
@@ -291,12 +289,7 @@ const Upload = ({
   const breakpoint = useBreakpoint();
 
   if (!isAcceptingUploads) {
-    return (
-      <Alert status="info" borderRadius="md">
-        <AlertIcon />
-        <Text>This event is no longer accepting photo uploads.</Text>
-      </Alert>
-    );
+    return null;
   }
 
   return (
@@ -469,9 +462,8 @@ export default function EventGalleryPage() {
 
   const userId = getUserId();
 
-  // Separate user's uploads from others
+  // Get user's uploads for the dedicated section
   const myUploads = data.filter((pic) => pic.uploaderId === userId);
-  const otherUploads = data.filter((pic) => pic.uploaderId !== userId);
 
   const isAcceptingUploads = event
     ? isEventActive(event.start_time, event.end_time)
@@ -652,7 +644,7 @@ export default function EventGalleryPage() {
           </Box>
         ) : sortBy === "photo_date" ? (
           <GroupedByDayGallery
-            data={otherUploads}
+            data={data}
             title={myUploads.length > 0 ? "All Photos" : undefined}
             sortBy={sortBy}
             setSortBy={setSortBy}
@@ -660,7 +652,7 @@ export default function EventGalleryPage() {
           />
         ) : (
           <Gallery
-            data={otherUploads}
+            data={data}
             title={myUploads.length > 0 ? "All Photos" : undefined}
             showSortControls={true}
             sortBy={sortBy}
