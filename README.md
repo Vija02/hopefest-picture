@@ -1,6 +1,6 @@
 # Hopefest Picture
 
-[Link to running project](https://pics24.hopefest.co.uk/)
+[Link to running project](https://pics.hopefest.co.uk/)
 
 ## Getting started
 Everything is setup through docker so all we need is to get the compose file running.
@@ -9,6 +9,14 @@ There's a few required environment variables so we need to make sure those are p
 ```bash
 docker-compose -f docker-compose-dev.yml up -d --build
 ```
+
+Alternatively, run:
+
+```bash
+yarn dev
+```
+
+Note that uploading won't work since we need tusd instance running
 
 ## Components
 
