@@ -13,6 +13,7 @@ COPY apps/web/package.json /app/apps/web/package.json
 
 COPY packages/typescript-config/ /app/packages/typescript-config/
 COPY packages/eslint-config/ /app/packages/eslint-config/
+COPY patches/ /app/patches/
 
 RUN yarn install
 RUN SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm_config_arch=arm64 npm_config_platform=linuxmusl yarn add -W sharp --ignore-engines
@@ -51,6 +52,6 @@ COPY --from=deps /app /app
 COPY --from=server /app/apps/server/dist /app/apps/server/dist
 COPY /apps/server/migrations /app/apps/server/migrations
 
-COPY --from=frontend /app/apps/web/out /app/apps/web/out
+COPY --from=frontend /app/apps/web/dist /app/apps/web/dist
 
 ENTRYPOINT yarn migrate && node /app/apps/server/dist/apps/server/src/index.js

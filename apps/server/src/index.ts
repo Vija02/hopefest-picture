@@ -26,13 +26,23 @@ function transformer(html: string, _req: Request): string {
 }
 
 // Configure vite-express for monorepo setup (using class-based API from patch)
+// In production (compiled), __dirname is /app/apps/server/dist/apps/server/src
+// In development, __dirname is /app/apps/server/src
+// We need to handle both cases for the web app path
+const isProduction = process.env.NODE_ENV === "production"
+const webAppRoot = isProduction
+	? `${__dirname}/../../../../../web` // From dist/apps/server/src up 5 to /app/apps, then web
+	: `${__dirname}/../../web` // From apps/server/src -> apps/web
+
 const viteExpress = new ViteExpress()
 viteExpress.config({
-	mode: process.env.NODE_ENV === "production" ? "production" : "development",
+	mode: isProduction ? "production" : "development",
 	inlineViteConfig: {
-		root: `${__dirname}/../../../apps/web`,
+		root: webAppRoot,
 		build: { outDir: "dist" },
-		envDir: `${__dirname}/../../../`,
+		envDir: isProduction
+			? `${__dirname}/../../../../../`
+			: `${__dirname}/../../../`,
 	} as any,
 	transformer,
 })
