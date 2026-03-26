@@ -7,7 +7,7 @@ import knexfile from "../../../knexfile";
 const isProduction = process.env.NODE_ENV === "production";
 const dbPath = isProduction
   ? path.resolve(__dirname, "../../../../../../db/database.sqlite3") // From dist/apps/server/src up 6 to /app/, then ../db
-  : path.resolve(__dirname, "../../../../db/database.sqlite3"); // From /server/src up 4 to root, then db
+  : path.resolve(__dirname, "../../../db/database.sqlite3"); // From /server/src up 4 to root, then db
 
 export const knex = Knex({
   ...knexfile,
