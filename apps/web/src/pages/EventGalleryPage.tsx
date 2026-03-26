@@ -5,6 +5,7 @@ import {
   Button,
   ButtonGroup,
   Center,
+  Collapse,
   Heading,
   Image,
   Spinner,
@@ -12,6 +13,7 @@ import {
   Text,
   useBreakpoint,
 } from "@chakra-ui/react";
+import { keyframes } from "@emotion/react";
 import Uppy from "@uppy/core";
 import "@uppy/core/dist/style.min.css";
 import "@uppy/dashboard/dist/style.min.css";
@@ -19,7 +21,7 @@ import { Dashboard, DashboardModal } from "@uppy/react";
 import Tus from "@uppy/tus";
 import axios from "axios";
 import { Masonry } from "masonic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import Lightbox from "yet-another-react-lightbox";
 import Counter from "yet-another-react-lightbox/plugins/counter";
@@ -30,6 +32,13 @@ import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import "yet-another-react-lightbox/styles.css";
 
 import { config, getUserId } from "../config";
+
+// Flash highlight animation
+const flashAnimation = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(66, 153, 225, 0.8); }
+  50% { box-shadow: 0 0 20px 10px rgba(66, 153, 225, 0.6); }
+  100% { box-shadow: 0 0 0 0 rgba(66, 153, 225, 0); }
+`;
 
 interface Event {
   id: number;
@@ -63,6 +72,7 @@ const Gallery = ({
   setSortBy,
   bgColor,
   borderColor,
+  highlightedIds,
 }: {
   data: any[];
   title?: string;
@@ -71,6 +81,7 @@ const Gallery = ({
   setSortBy?: (sort: "photo_date" | "upload_date") => void;
   bgColor?: string;
   borderColor?: string;
+  highlightedIds?: Set<number>;
 }) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -81,18 +92,32 @@ const Gallery = ({
   };
 
   const ImgRenderer = (props: any) => {
+    const { index, data: pictureData, width } = props;
     const {
-      index,
-      data: {
-        id,
-        src,
-        size: { width: imgWidth, height: imgHeight },
-      },
-      width,
-    } = props;
+      id,
+      src,
+      size: { width: imgWidth, height: imgHeight },
+    } = pictureData;
+
+    const isHighlighted = highlightedIds?.has(id);
+    const imgRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      if (isHighlighted && imgRef.current) {
+        imgRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, [isHighlighted]);
 
     return (
-      <Box width={width} height={(imgHeight * width) / imgWidth}>
+      <Box
+        ref={imgRef}
+        width={width}
+        height={(imgHeight * width) / imgWidth}
+        animation={
+          isHighlighted ? `${flashAnimation} 1.5s ease-out 3` : undefined
+        }
+        borderRadius="md"
+      >
         <Image
           id={id}
           src={src}
@@ -116,8 +141,10 @@ const Gallery = ({
         <Box
           mb={3}
           display="flex"
+          flexDirection={{ base: "column", sm: "row" }}
           justifyContent="space-between"
-          alignItems="center"
+          alignItems={{ base: "flex-start", sm: "center" }}
+          gap={2}
         >
           {title && (
             <Text fontSize="lg" fontWeight="semibold" color="gray.700">
@@ -126,7 +153,11 @@ const Gallery = ({
           )}
           {showSortControls && sortBy && setSortBy && (
             <Box display="flex" alignItems="center" gap={2}>
-              <Text fontSize="sm" color="gray.600">
+              <Text
+                fontSize="sm"
+                color="gray.600"
+                display={{ base: "none", sm: "block" }}
+              >
                 Sort by:
               </Text>
               <ButtonGroup size="sm" isAttached variant="outline">
@@ -134,6 +165,8 @@ const Gallery = ({
                   onClick={() => setSortBy("photo_date")}
                   colorScheme={sortBy === "photo_date" ? "blue" : "gray"}
                   variant={sortBy === "photo_date" ? "solid" : "outline"}
+                  fontSize={{ base: "xs", sm: "sm" }}
+                  px={{ base: 2, sm: 3 }}
                 >
                   Photo Date
                 </Button>
@@ -141,6 +174,8 @@ const Gallery = ({
                   onClick={() => setSortBy("upload_date")}
                   colorScheme={sortBy === "upload_date" ? "blue" : "gray"}
                   variant={sortBy === "upload_date" ? "solid" : "outline"}
+                  fontSize={{ base: "xs", sm: "sm" }}
+                  px={{ base: 2, sm: 3 }}
                 >
                   Recent Uploads
                 </Button>
@@ -236,6 +271,46 @@ const Upload = ({
   );
 };
 
+const MyUploadsSection = ({
+  myUploads,
+  highlightedIds,
+}: {
+  myUploads: any[];
+  highlightedIds: Set<number>;
+}) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <Box mb={6}>
+      <Button
+        variant="ghost"
+        onClick={() => setIsOpen(!isOpen)}
+        mb={2}
+        px={2}
+        display="flex"
+        alignItems="center"
+        gap={2}
+        fontWeight="semibold"
+        color="gray.700"
+      >
+        <Text>{isOpen ? "▼" : "▶"}</Text>
+        <Text>Your Uploads ({myUploads.length})</Text>
+      </Button>
+      <Collapse in={isOpen} animateOpacity>
+        <Box
+          p={3}
+          bg="blue.50"
+          borderRadius="md"
+          border="1px solid"
+          borderColor="blue.200"
+        >
+          <Gallery data={myUploads} highlightedIds={highlightedIds} />
+        </Box>
+      </Collapse>
+    </Box>
+  );
+};
+
 const isEventActive = (startTime: string, endTime: string) => {
   const now = new Date();
   return new Date(startTime) <= now && new Date(endTime) >= now;
@@ -250,6 +325,7 @@ export default function EventGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("photo_date");
+  const [highlightedIds, setHighlightedIds] = useState<Set<number>>(new Set());
 
   const userId = getUserId();
 
@@ -309,7 +385,21 @@ export default function EventGalleryPage() {
       eventSource.onmessage = (event) => {
         const message = JSON.parse(event.data);
         if (message.type === "new_picture") {
-          setData((prevData) => [message.picture, ...prevData]);
+          const picture = message.picture;
+          setData((prevData) => [picture, ...prevData]);
+
+          // Highlight if it's the current user's upload
+          if (picture.uploaderId === userId) {
+            setHighlightedIds((prev) => new Set(prev).add(picture.id));
+            // Remove highlight after animation completes (1.5s * 3 = 4.5s)
+            setTimeout(() => {
+              setHighlightedIds((prev) => {
+                const next = new Set(prev);
+                next.delete(picture.id);
+                return next;
+              });
+            }, 5000);
+          }
         }
       };
 
@@ -408,12 +498,12 @@ export default function EventGalleryPage() {
         <Box mb={4} />
 
         {/* My Uploads Section */}
-        <Gallery
-          data={myUploads}
-          title="Your Uploads"
-          bgColor="blue.50"
-          borderColor="blue.200"
-        />
+        {myUploads.length > 0 && (
+          <MyUploadsSection
+            myUploads={myUploads}
+            highlightedIds={highlightedIds}
+          />
+        )}
 
         {/* All Photos Section */}
         {data.length === 0 ? (
