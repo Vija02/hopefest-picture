@@ -1,36 +1,35 @@
-import "@uppy/core/dist/style.min.css";
-import "@uppy/dashboard/dist/style.min.css";
-import "yet-another-react-lightbox/styles.css";
-import "yet-another-react-lightbox/plugins/counter.css";
-
 import {
+  Alert,
+  AlertIcon,
   Box,
   Button,
   ButtonGroup,
+  Center,
   Heading,
   Image,
+  Spinner,
   Stack,
   Text,
   useBreakpoint,
-  Alert,
-  AlertIcon,
-  Spinner,
-  Center,
 } from "@chakra-ui/react";
-import { Masonry } from "masonic";
-import { useCallback, useEffect, useState } from "react";
-import { useParams, Link as RouterLink } from "react-router-dom";
 import Uppy from "@uppy/core";
+import "@uppy/core/dist/style.min.css";
+import "@uppy/dashboard/dist/style.min.css";
 import { Dashboard, DashboardModal } from "@uppy/react";
 import Tus from "@uppy/tus";
 import axios from "axios";
+import { Masonry } from "masonic";
+import { useCallback, useEffect, useState } from "react";
+import { Link as RouterLink, useParams } from "react-router-dom";
 import Lightbox from "yet-another-react-lightbox";
-import Download from "yet-another-react-lightbox/plugins/download";
 import Counter from "yet-another-react-lightbox/plugins/counter";
-import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
+import "yet-another-react-lightbox/plugins/counter.css";
+import Download from "yet-another-react-lightbox/plugins/download";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
-import { create } from "zustand";
-import { config } from "../config";
+import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
+import "yet-another-react-lightbox/styles.css";
+
+import { config, getUserId } from "../config";
 
 interface Event {
   id: number;
@@ -39,26 +38,6 @@ interface Event {
   start_time: string;
   end_time: string;
 }
-
-interface SlideStoreState {
-  slideIndex: number;
-  slideIsOpen: boolean;
-  closeSlide: () => void;
-  openSlide: (slideIndex: number) => void;
-  setSlideIndex: (slideIndex: number) => void;
-}
-
-const useSlideStore = create<SlideStoreState>((set) => ({
-  slideIndex: 0,
-  slideIsOpen: false,
-  closeSlide: () => set({ slideIsOpen: false }),
-  openSlide: (slideIndex: number) => set({ slideIndex, slideIsOpen: true }),
-  setSlideIndex: (slideIndex: number) => set({ slideIndex }),
-}));
-
-const EasyMasonryComponent = ({ data }: { data: any[] }) => {
-  return <Masonry items={data} columnGutter={8} render={ImgRenderer} />;
-};
 
 const calculateSrcSet = (src: string, imgWidth: number) => {
   const fileSplit = src.split(".");
@@ -75,31 +54,122 @@ const calculateSrcSet = (src: string, imgWidth: number) => {
     }));
 };
 
-const ImgRenderer = (props: any) => {
-  const {
-    index,
-    data: {
-      id,
-      src,
-      size: { width: imgWidth, height: imgHeight },
-    },
-    width,
-  } = props;
+// Gallery component with its own lightbox
+const Gallery = ({
+  data,
+  title,
+  showSortControls,
+  sortBy,
+  setSortBy,
+  bgColor,
+  borderColor,
+}: {
+  data: any[];
+  title?: string;
+  showSortControls?: boolean;
+  sortBy?: "photo_date" | "upload_date";
+  setSortBy?: (sort: "photo_date" | "upload_date") => void;
+  bgColor?: string;
+  borderColor?: string;
+}) => {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  const openSlide = useSlideStore((state) => state.openSlide);
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const ImgRenderer = (props: any) => {
+    const {
+      index,
+      data: {
+        id,
+        src,
+        size: { width: imgWidth, height: imgHeight },
+      },
+      width,
+    } = props;
+
+    return (
+      <Box width={width} height={(imgHeight * width) / imgWidth}>
+        <Image
+          id={id}
+          src={src}
+          alt=""
+          onClick={() => openLightbox(index)}
+          cursor="pointer"
+          sizes={`${width}px`}
+          srcSet={calculateSrcSet(src, imgWidth)
+            .map((x) => `${x.src} ${x.width}w`)
+            .join(", ")}
+        />
+      </Box>
+    );
+  };
+
+  if (data.length === 0) return null;
 
   return (
-    <Box width={width} height={(imgHeight * width) / imgWidth}>
-      <Image
-        id={id}
-        src={src}
-        alt=""
-        onClick={() => openSlide(index)}
-        cursor="pointer"
-        sizes={`${width}px`}
-        srcSet={calculateSrcSet(src, imgWidth)
-          .map((x) => `${x.src} ${x.width}w`)
-          .join(", ")}
+    <Box mb={6}>
+      {(title || showSortControls) && (
+        <Box
+          mb={3}
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+        >
+          {title && (
+            <Text fontSize="lg" fontWeight="semibold" color="gray.700">
+              {title} ({data.length})
+            </Text>
+          )}
+          {showSortControls && sortBy && setSortBy && (
+            <Box display="flex" alignItems="center" gap={2}>
+              <Text fontSize="sm" color="gray.600">
+                Sort by:
+              </Text>
+              <ButtonGroup size="sm" isAttached variant="outline">
+                <Button
+                  onClick={() => setSortBy("photo_date")}
+                  colorScheme={sortBy === "photo_date" ? "blue" : "gray"}
+                  variant={sortBy === "photo_date" ? "solid" : "outline"}
+                >
+                  Photo Date
+                </Button>
+                <Button
+                  onClick={() => setSortBy("upload_date")}
+                  colorScheme={sortBy === "upload_date" ? "blue" : "gray"}
+                  variant={sortBy === "upload_date" ? "solid" : "outline"}
+                >
+                  Recent Uploads
+                </Button>
+              </ButtonGroup>
+            </Box>
+          )}
+        </Box>
+      )}
+      <Box
+        p={bgColor ? 3 : 0}
+        bg={bgColor}
+        borderRadius={bgColor ? "md" : undefined}
+        border={borderColor ? "1px solid" : undefined}
+        borderColor={borderColor}
+      >
+        <Masonry items={data} columnGutter={8} render={ImgRenderer} />
+      </Box>
+      <Lightbox
+        open={lightboxOpen}
+        index={lightboxIndex}
+        close={() => setLightboxOpen(false)}
+        on={{
+          view: ({ index: currentIndex }) => setLightboxIndex(currentIndex),
+        }}
+        slides={data.map((x: any) => ({
+          src: x.src,
+          srcSet: calculateSrcSet(x.src, x.size.width) as any,
+        }))}
+        plugins={[Counter, Download, Fullscreen, Slideshow]}
       />
     </Box>
   );
@@ -115,6 +185,14 @@ const Upload = ({
   const [uppy] = useState(() =>
     new Uppy({ restrictions: { allowedFileTypes: ["image/*"] } }).use(Tus, {
       endpoint: config.tusdPath,
+      onBeforeRequest: async (req) => {
+        // Add uploaderId to metadata
+        const uploaderId = getUserId();
+        req.setHeader(
+          "Upload-Metadata",
+          req.getHeader("Upload-Metadata") + `,uploaderId ${btoa(uploaderId)}`,
+        );
+      },
     }),
   );
 
@@ -158,27 +236,6 @@ const Upload = ({
   );
 };
 
-const LightBoxComponent = ({ data }: { data: any[] }) => {
-  const slideState = useSlideStore();
-
-  return (
-    <Lightbox
-      open={slideState.slideIsOpen}
-      index={slideState.slideIndex}
-      close={() => slideState.closeSlide()}
-      on={{
-        view: ({ index: currentIndex }) =>
-          slideState.setSlideIndex(currentIndex),
-      }}
-      slides={data.map((x: any) => ({
-        src: x.src,
-        srcSet: calculateSrcSet(x.src, x.width) as any,
-      }))}
-      plugins={[Counter, Download, Fullscreen, Slideshow]}
-    />
-  );
-};
-
 const isEventActive = (startTime: string, endTime: string) => {
   const now = new Date();
   return new Date(startTime) <= now && new Date(endTime) >= now;
@@ -193,6 +250,12 @@ export default function EventGalleryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("photo_date");
+
+  const userId = getUserId();
+
+  // Separate user's uploads from others
+  const myUploads = data.filter((pic) => pic.uploaderId === userId);
+  const otherUploads = data.filter((pic) => pic.uploaderId !== userId);
 
   const isAcceptingUploads = event
     ? isEventActive(event.start_time, event.end_time)
@@ -230,26 +293,43 @@ export default function EventGalleryPage() {
     getPics();
   }, [eventSlug, getPics]);
 
-  // SSE for real-time updates
+  // SSE for real-time updates with reconnection
   useEffect(() => {
     if (!eventSlug) return;
 
-    const eventSource = new EventSource(`/events/${eventSlug}/stream`);
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
 
-    eventSource.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      if (message.type === "new_picture") {
-        setData((prevData) => [message.picture, ...prevData]);
-      }
+    const connect = () => {
+      if (!isMounted) return;
+
+      eventSource = new EventSource(`/events/${eventSlug}/stream`);
+
+      eventSource.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === "new_picture") {
+          setData((prevData) => [message.picture, ...prevData]);
+        }
+      };
+
+      eventSource.onerror = () => {
+        eventSource?.close();
+        // Reconnect after 3 seconds
+        if (isMounted) {
+          reconnectTimeout = setTimeout(connect, 3000);
+        }
+      };
     };
 
-    eventSource.onerror = () => {
-      // Reconnect will happen automatically
-      console.log("SSE connection error, will reconnect...");
-    };
+    connect();
 
     return () => {
-      eventSource.close();
+      isMounted = false;
+      eventSource?.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
     };
   }, [eventSlug]);
 
@@ -326,44 +406,30 @@ export default function EventGalleryPage() {
       >
         <Upload getPics={getPics} isAcceptingUploads={isAcceptingUploads} />
         <Box mb={4} />
-        {data.length > 0 && (
-          <Box
-            mb={4}
-            display="flex"
-            justifyContent="flex-end"
-            alignItems="center"
-            gap={2}
-          >
-            <Text fontSize="sm" color="gray.600">
-              Sort by:
-            </Text>
-            <ButtonGroup size="sm" isAttached variant="outline">
-              <Button
-                onClick={() => setSortBy("photo_date")}
-                colorScheme={sortBy === "photo_date" ? "blue" : "gray"}
-                variant={sortBy === "photo_date" ? "solid" : "outline"}
-              >
-                Photo Date
-              </Button>
-              <Button
-                onClick={() => setSortBy("upload_date")}
-                colorScheme={sortBy === "upload_date" ? "blue" : "gray"}
-                variant={sortBy === "upload_date" ? "solid" : "outline"}
-              >
-                Recent Uploads
-              </Button>
-            </ButtonGroup>
-          </Box>
-        )}
+
+        {/* My Uploads Section */}
+        <Gallery
+          data={myUploads}
+          title="Your Uploads"
+          bgColor="blue.50"
+          borderColor="blue.200"
+        />
+
+        {/* All Photos Section */}
         {data.length === 0 ? (
           <Box textAlign="center" py={8}>
             <Text color="gray.500">No photos yet. Be the first to upload!</Text>
           </Box>
         ) : (
-          <EasyMasonryComponent data={data} />
+          <Gallery
+            data={otherUploads}
+            title={myUploads.length > 0 ? "All Photos" : undefined}
+            showSortControls={true}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
         )}
       </Box>
-      <LightBoxComponent data={data} />
     </Box>
   );
 }
