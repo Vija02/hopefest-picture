@@ -7,7 +7,7 @@
     "NODE_ENV",
     "PORT"
   ],
-  "pipeline": {
+  "tasks": {
     "build": {
       "dependsOn": [
         "^build"
