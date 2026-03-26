@@ -12,7 +12,7 @@ dotenv.config({ path: envPath })
 
 import bodyParser from "body-parser"
 import cors from "cors"
-import express, { Request } from "express"
+import express, { Request, Response } from "express"
 import ViteExpress from "vite-express"
 import { v4 } from "uuid"
 import { handleAdmin } from "./admin"
@@ -24,6 +24,18 @@ const app = express()
 const port = process.env.PORT || 5000
 const imgBasePath = process.env.IMG_BASE_PATH || ""
 const tusdPath = process.env.TUSD_PATH || ""
+
+// SSE clients storage - map of eventSlug to array of response objects
+const sseClients: Map<string, Response[]> = new Map()
+
+// Broadcast new picture to all clients watching a specific event
+function broadcastNewPicture(eventSlug: string, picture: any) {
+	const clients = sseClients.get(eventSlug) || []
+	const data = JSON.stringify({ type: "new_picture", picture })
+	clients.forEach((client) => {
+		client.write(`data: ${data}\n\n`)
+	})
+}
 
 // HTML transformer to inject server config into the frontend
 function transformer(html: string, _req: Request): string {
@@ -65,6 +77,42 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 app.get("/health", (req, res) => {
 	res.status(200).send("Ok")
+})
+
+// SSE endpoint for real-time updates
+app.get("/events/:eventSlug/stream", async (req, res) => {
+	const { eventSlug } = req.params
+
+	// Verify event exists
+	const event = await knex("events").where({ slug: eventSlug }).first()
+	if (!event) {
+		res.status(404).json({ error: "Event not found" })
+		return
+	}
+
+	// Set up SSE headers
+	res.setHeader("Content-Type", "text/event-stream")
+	res.setHeader("Cache-Control", "no-cache")
+	res.setHeader("Connection", "keep-alive")
+	res.flushHeaders()
+
+	// Add client to the list
+	if (!sseClients.has(eventSlug)) {
+		sseClients.set(eventSlug, [])
+	}
+	sseClients.get(eventSlug)!.push(res)
+
+	// Send initial connection message
+	res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`)
+
+	// Remove client on disconnect
+	req.on("close", () => {
+		const clients = sseClients.get(eventSlug) || []
+		const index = clients.indexOf(res)
+		if (index !== -1) {
+			clients.splice(index, 1)
+		}
+	})
 })
 
 // Get pictures for a specific event by slug
@@ -153,7 +201,7 @@ app.all("/tusd_notify", async (req, res) => {
 		const storageKey = req.body.Event.Upload.Storage.Key
 		const activeEvent = await getActiveEvent()
 
-		await knex("pictures").insert({
+		const [insertedId] = await knex("pictures").insert({
 			name: filename,
 			file_path: storageKey,
 			is_hidden: false,
@@ -163,6 +211,18 @@ app.all("/tusd_notify", async (req, res) => {
 		})
 
 		await cacheData(storageKey)
+
+		// Get the cached picture data and broadcast to SSE clients
+		const picture = await knex("pictures").where({ id: insertedId }).first()
+		if (picture && activeEvent) {
+			broadcastNewPicture(activeEvent.slug, {
+				id: picture.id,
+				src: `${imgBasePath}${picture.file_path}`,
+				size: { width: picture.width, height: picture.height },
+				createdAt: picture.created_at,
+			})
+		}
+
 		console.log(
 			new Date(),
 			`[upload] ${filename} -> ${storageKey} (event: ${activeEvent?.name || "none"})`,

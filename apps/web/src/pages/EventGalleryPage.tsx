@@ -230,6 +230,29 @@ export default function EventGalleryPage() {
     getPics();
   }, [eventSlug, getPics]);
 
+  // SSE for real-time updates
+  useEffect(() => {
+    if (!eventSlug) return;
+
+    const eventSource = new EventSource(`/events/${eventSlug}/stream`);
+
+    eventSource.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === "new_picture") {
+        setData((prevData) => [message.picture, ...prevData]);
+      }
+    };
+
+    eventSource.onerror = () => {
+      // Reconnect will happen automatically
+      console.log("SSE connection error, will reconnect...");
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [eventSlug]);
+
   const breakpoint = useBreakpoint();
 
   if (loading) {
