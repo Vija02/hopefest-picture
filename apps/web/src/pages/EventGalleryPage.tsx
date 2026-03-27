@@ -155,7 +155,19 @@ const Gallery = ({
 
     useEffect(() => {
       if (isHighlighted && imgRef.current) {
-        imgRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        const rect = imgRef.current.getBoundingClientRect();
+        const isInViewport =
+          rect.top >= 0 &&
+          rect.left >= 0 &&
+          rect.bottom <= window.innerHeight &&
+          rect.right <= window.innerWidth;
+
+        if (!isInViewport) {
+          imgRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
       }
     }, [isHighlighted]);
 
