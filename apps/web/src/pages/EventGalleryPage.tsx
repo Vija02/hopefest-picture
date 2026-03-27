@@ -17,8 +17,7 @@ import "@uppy/dashboard/dist/style.min.css";
 import { Dashboard, DashboardModal } from "@uppy/react";
 import Tus from "@uppy/tus";
 import axios from "axios";
-import { Masonry } from "masonic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import Lightbox from "yet-another-react-lightbox";
 import Counter from "yet-another-react-lightbox/plugins/counter";
@@ -28,6 +27,7 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import "yet-another-react-lightbox/styles.css";
 
+import { VirtualizedMasonryGrid } from "../components/VirtualizedMasonryGrid";
 import { config, getUserId } from "../config";
 
 // Helper to group pictures by date (for photo_date sorting)
@@ -142,51 +142,44 @@ const Gallery = ({
     setLightboxOpen(true);
   };
 
-  const ImgRenderer = (props: any) => {
-    const { index, data: pictureData, width } = props;
+  const renderImage = ({
+    item: pictureData,
+    index,
+    width,
+  }: {
+    item: any;
+    index: number;
+    width: number;
+    height: number;
+  }) => {
     const {
       id,
       src,
-      size: { width: imgWidth, height: imgHeight },
+      size: { width: imgWidth },
     } = pictureData;
 
     const isHighlighted = highlightedIds?.has(id);
-    const imgRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      if (isHighlighted && imgRef.current) {
-        const rect = imgRef.current.getBoundingClientRect();
-        const isInViewport =
-          rect.top >= 0 &&
-          rect.left >= 0 &&
-          rect.bottom <= window.innerHeight &&
-          rect.right <= window.innerWidth;
-
-        if (!isInViewport) {
-          imgRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
-        }
-      }
-    }, [isHighlighted]);
 
     return (
       <Box
-        ref={imgRef}
-        width={width}
-        height={(imgHeight * width) / imgWidth}
+        width="100%"
+        height="100%"
         animation={
           isHighlighted ? `${flashAnimation} 1.5s ease-out 3` : undefined
         }
         borderRadius="md"
+        overflow="hidden"
       >
         <Image
           id={id}
           src={src}
           alt=""
+          width="100%"
+          height="100%"
+          objectFit="cover"
           onClick={() => openLightbox(index)}
           cursor="pointer"
+          loading="lazy"
           sizes={`${width}px`}
           srcSet={calculateSrcSet(src, imgWidth)
             .map((x) => `${x.src} ${x.width}w`)
@@ -254,11 +247,15 @@ const Gallery = ({
         border={borderColor ? "1px solid" : undefined}
         borderColor={borderColor}
       >
-        <Masonry
+        <VirtualizedMasonryGrid
           items={data}
-          columnGutter={8}
-          render={ImgRenderer}
-          overscanBy={5}
+          getItemWidth={(item: any) => item.size.width}
+          getItemHeight={(item: any) => item.size.height}
+          render={renderImage}
+          itemKey={(item: any) => item.id}
+          columnGap={8}
+          rowGap={8}
+          overscan={500}
         />
       </Box>
       <Lightbox

@@ -22,7 +22,6 @@
     "@uppy/tus": "^3.5.5",
     "axios": "^1.7.9",
     "framer-motion": "^11.17.0",
-    "masonic": "^3.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.13.2",
