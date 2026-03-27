@@ -568,7 +568,7 @@ export const handleAdmin = (app: Express) => {
               .map(
                 (x) => `
 							<div class="pic-card">
-								<img src="${x.src}" alt="" />
+								<img src="${x.src}" alt="" loading="lazy" />
 								<div class="pic-info">
 									<div class="pic-event">${x.eventName}</div>
 									<div class="pic-actions">
