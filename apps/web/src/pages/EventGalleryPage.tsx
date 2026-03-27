@@ -254,7 +254,12 @@ const Gallery = ({
         border={borderColor ? "1px solid" : undefined}
         borderColor={borderColor}
       >
-        <Masonry items={data} columnGutter={8} render={ImgRenderer} />
+        <Masonry
+          items={data}
+          columnGutter={8}
+          render={ImgRenderer}
+          overscanBy={5}
+        />
       </Box>
       <Lightbox
         open={lightboxOpen}
@@ -676,13 +681,20 @@ export default function EventGalleryPage() {
           gap={{ base: 2, md: 4 }}
         >
           {event.logo && (
-            <Image
-              src={event.logo}
-              alt=""
-              maxH={{ base: "60px", sm: "80px", md: "120px" }}
-              maxW={{ base: "200px", sm: "280px", md: "400px" }}
-              objectFit="contain"
-            />
+            <Box
+              minH={{ base: "60px", sm: "80px", md: "120px" }}
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+            >
+              <Image
+                src={event.logo}
+                alt=""
+                maxH={{ base: "60px", sm: "80px", md: "120px" }}
+                maxW={{ base: "200px", sm: "280px", md: "400px" }}
+                objectFit="contain"
+              />
+            </Box>
           )}
           <Heading
             fontSize={{ base: "lg", sm: "xl", md: "2xl" }}
