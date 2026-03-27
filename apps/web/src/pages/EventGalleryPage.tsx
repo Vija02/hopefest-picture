@@ -336,7 +336,14 @@ const MyUploadsSection = ({
   myUploads: any[];
   highlightedIds: Set<number>;
 }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Auto-open when there's a new highlighted upload
+  useEffect(() => {
+    if (highlightedIds.size > 0) {
+      setIsOpen(true);
+    }
+  }, [highlightedIds.size]);
   // Track key to force Masonry re-render after collapse animation
   const [masonryKey, setMasonryKey] = useState(0);
 
