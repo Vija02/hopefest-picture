@@ -24,10 +24,10 @@ There's a few components at play here. As seen in the docker-compose file.
 - `tusd` server
   - Used by our frontend to upload the images
   - The `tusd` server will upload the image and notify the backend
-- B2 Backblaze storage
+- R2 storage
   - We store the images here. We use S3 for the API so we could also replace with another S3 compatible storage
 - Cache (Cloudflare)
-  - Infront the B2 storage is a CDN so everything is fast
+  - Since we use R2, we get caching/egress for free
 - Our server
   - This stores the list of pictures, serving it to the frontend
   - It also listens from `tusd` whenever there's a new picture uploaded
