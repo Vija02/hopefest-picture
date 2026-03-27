@@ -343,8 +343,8 @@ const MyUploadsSection = ({
       <Button
         variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        mb={2}
         px={2}
+        py={2}
         w="100%"
         justifyContent="flex-start"
         display="flex"
@@ -352,6 +352,14 @@ const MyUploadsSection = ({
         gap={2}
         fontWeight="semibold"
         color="gray.700"
+        position="sticky"
+        top={0}
+        bg="white"
+        zIndex={10}
+        borderBottom="1px solid"
+        borderColor="gray.200"
+        borderRadius={0}
+        _hover={{ bg: "gray.50" }}
       >
         <Text>{isOpen ? "▼" : "▶"}</Text>
         <Text>Your Uploads ({myUploads.length})</Text>
