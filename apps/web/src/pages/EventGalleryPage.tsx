@@ -325,6 +325,18 @@ const MyUploadsSection = ({
   highlightedIds: Set<number>;
 }) => {
   const [isOpen, setIsOpen] = useState(true);
+  // Track key to force Masonry re-render after collapse animation
+  const [masonryKey, setMasonryKey] = useState(0);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Wait for collapse animation to complete (~300ms) then force Masonry re-render
+      const timeout = setTimeout(() => {
+        setMasonryKey((prev) => prev + 1);
+      }, 350);
+      return () => clearTimeout(timeout);
+    }
+  }, [isOpen]);
 
   return (
     <Box mb={6}>
@@ -352,7 +364,11 @@ const MyUploadsSection = ({
           border="1px solid"
           borderColor="blue.200"
         >
-          <Gallery data={myUploads} highlightedIds={highlightedIds} />
+          <Gallery
+            key={masonryKey}
+            data={myUploads}
+            highlightedIds={highlightedIds}
+          />
         </Box>
       </Collapse>
     </Box>
