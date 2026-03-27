@@ -330,10 +330,10 @@ const MyUploadsSection = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Wait for collapse animation to complete (~300ms) then force Masonry re-render
+      // Wait for collapse animation to complete then force Masonry re-render
       const timeout = setTimeout(() => {
         setMasonryKey((prev) => prev + 1);
-      }, 350);
+      }, 1000);
       return () => clearTimeout(timeout);
     }
   }, [isOpen]);
