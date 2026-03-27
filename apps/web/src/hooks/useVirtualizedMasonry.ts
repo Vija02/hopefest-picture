@@ -3,14 +3,7 @@
  * Based on https://github.com/sahvar/virtualized-masonry-gallery
  * Implements efficient rendering with known image dimensions
  */
-import {
-  type RefObject,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 
 export interface VirtualizedItem<T> {
   data: T;
@@ -105,9 +98,9 @@ export function useVirtualizedMasonry<T>({
     typeof window !== "undefined" ? window.innerHeight : 800,
   );
 
-  // Store all positioned items
-  const allItemsRef = useRef<VirtualizedItem<T>[]>([]);
-  const containerHeightRef = useRef(0);
+  // Store all positioned items - use state to trigger re-renders
+  const [allItems, setAllItems] = useState<VirtualizedItem<T>[]>([]);
+  const [containerHeight, setContainerHeight] = useState(0);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const scrollRafRef = useRef<number | null>(null);
 
@@ -123,10 +116,10 @@ export function useVirtualizedMasonry<T>({
    * Calculate masonry layout positions for all items
    * Uses greedy algorithm: place each item in shortest column
    */
-  const calculateLayout = useCallback(() => {
+  useEffect(() => {
     if (!items.length || columnWidth <= 0) {
-      allItemsRef.current = [];
-      containerHeightRef.current = 0;
+      setAllItems([]);
+      setContainerHeight(0);
       return;
     }
 
@@ -166,8 +159,8 @@ export function useVirtualizedMasonry<T>({
       columnHeights[shortestColumnIndex] += displayHeight + rowGap;
     });
 
-    allItemsRef.current = positionedItems;
-    containerHeightRef.current = Math.max(...columnHeights) - rowGap;
+    setAllItems(positionedItems);
+    setContainerHeight(Math.max(...columnHeights) - rowGap);
   }, [
     items,
     columnWidth,
@@ -177,13 +170,6 @@ export function useVirtualizedMasonry<T>({
     getItemWidth,
     getItemHeight,
   ]);
-
-  /**
-   * Calculate all item positions when dependencies change
-   */
-  useEffect(() => {
-    calculateLayout();
-  }, [calculateLayout]);
 
   /**
    * Filter items to only those visible in viewport
@@ -201,11 +187,11 @@ export function useVirtualizedMasonry<T>({
     const viewportTop = relativeScrollTop - overscan;
     const viewportBottom = relativeScrollTop + viewportHeight + overscan;
 
-    return allItemsRef.current.filter((item) => {
+    return allItems.filter((item) => {
       const itemBottom = item.top + item.height;
       return itemBottom >= viewportTop && item.top <= viewportBottom;
     });
-  }, [scrollTop, viewportHeight, overscan, containerRef, allItemsRef.current]);
+  }, [scrollTop, viewportHeight, overscan, containerRef, allItems]);
 
   /**
    * Handle container resize using ResizeObserver
@@ -292,7 +278,7 @@ export function useVirtualizedMasonry<T>({
 
   return {
     visibleItems,
-    containerHeight: containerHeightRef.current,
+    containerHeight,
     columnWidth,
     columnCount: gridConfig.columnCount,
   };
