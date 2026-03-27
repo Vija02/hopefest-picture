@@ -169,6 +169,7 @@ const Gallery = ({
         }
         borderRadius="md"
         overflow="hidden"
+        bg="gray.200"
       >
         <Image
           id={id}
