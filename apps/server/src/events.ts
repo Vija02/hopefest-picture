@@ -53,6 +53,62 @@ export const handleEvents = (app: Express) => {
     res.json(events);
   });
 
+  // Get pictures for an event with filtering options
+  app.get("/api/events/:slug/pictures", async (req, res) => {
+    const { slug } = req.params;
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit as string) || 3, 1),
+      100,
+    );
+    const sort = (req.query.sort as string) || "random"; // "random" or "latest"
+    const dimension = (req.query.dimension as string) || "all"; // "all", "landscape", "portrait"
+
+    // Find the event by slug
+    const event = await knex("events").where({ slug }).first();
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+
+    const imgBasePath = process.env.IMG_BASE_PATH || "";
+
+    // Build query
+    let query = knex("pictures")
+      .select("*")
+      .where({ is_hidden: false, is_cached: true, event_id: event.id });
+
+    // Apply dimension filter
+    if (dimension === "landscape") {
+      query = query.whereRaw("width > height");
+    } else if (dimension === "portrait") {
+      query = query.whereRaw("width < height");
+    }
+
+    // Apply sorting
+    if (sort === "latest") {
+      query = query.orderBy("created_at", "desc");
+    } else {
+      // Random sort
+      query = query.orderByRaw("RANDOM()");
+    }
+
+    // Apply limit
+    query = query.limit(limit);
+
+    const data = await query;
+
+    const formatted = data.map((x: any) => ({
+      id: x.id,
+      src: `${imgBasePath}${x.file_path}`,
+      size: { width: x.width, height: x.height },
+      createdAt: x.created_at,
+      exifCreatedAt: x.exif_created_at,
+      uploaderId: x.uploader_id,
+    }));
+
+    res.json(formatted);
+  });
+
   // Get all public events (visible on homepage - past and current)
   app.get("/api/events/status/public", async (req, res) => {
     const now = new Date().toISOString();
