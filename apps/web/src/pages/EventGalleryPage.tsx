@@ -27,8 +27,17 @@ import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import Slideshow from "yet-another-react-lightbox/plugins/slideshow";
 import "yet-another-react-lightbox/styles.css";
 
+import { HlsVideoPlayer } from "../components/HlsVideoPlayer";
 import { VirtualizedMasonryGrid } from "../components/VirtualizedMasonryGrid";
 import { config, getUserId } from "../config";
+
+interface Video {
+  id: number;
+  title: string;
+  url: string;
+  event_id: number;
+  sort_order: number;
+}
 
 // Helper to group pictures by date (for photo_date sorting)
 const UNKNOWN_DATE_KEY = "unknown";
@@ -507,6 +516,7 @@ export default function EventGalleryPage() {
   const { eventSlug } = useParams<{ eventSlug: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [data, setData] = useState<any[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("photo_date");
@@ -552,6 +562,16 @@ export default function EventGalleryPage() {
 
     // Fetch pictures
     getPics();
+
+    // Fetch videos
+    axios
+      .get(`/api/events/${eventSlug}/videos`)
+      .then((res) => {
+        setVideos(res.data);
+      })
+      .catch(() => {
+        // Videos are optional, don't show error
+      });
   }, [eventSlug, getPics]);
 
   // SSE for real-time updates with reconnection
@@ -762,6 +782,31 @@ export default function EventGalleryPage() {
             myUploads={myUploads}
             highlightedIds={highlightedIds}
           />
+        )}
+
+        {videos.length > 0 && (
+          <Box mt={2} mb={3}>
+            <Text fontSize="lg" fontWeight="semibold" color="gray.700" mb={3}>
+              Videos
+            </Text>
+            <Box
+              display="grid"
+              gridTemplateColumns={{
+                base: "1fr",
+                md: "repeat(2, 1fr)",
+                xl: "repeat(3, 1fr)",
+              }}
+              gap={4}
+            >
+              {videos.map((video) => (
+                <HlsVideoPlayer
+                  key={video.id}
+                  url={video.url}
+                  title={video.title}
+                />
+              ))}
+            </Box>
+          </Box>
         )}
 
         {/* All Photos Section */}

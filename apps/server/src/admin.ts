@@ -314,6 +314,7 @@ export const handleAdmin = (app: Express) => {
 					<div class="nav">
 						<a href="/admin">Pictures</a>
 						<a href="/admin/events">Events</a>
+						<a href="/admin/videos">Videos</a>
 					</div>
 					
 					<h1>Event Management</h1>
@@ -525,6 +526,7 @@ export const handleAdmin = (app: Express) => {
 					<div class="nav">
 						<a href="/admin/pictures">All Pictures</a>
 						<a href="/admin/events">Events</a>
+						<a href="/admin/videos">Videos</a>
 					</div>
 					
 					<h1>Pictures ${eventId ? `for Event #${eventId}` : "(All)"}</h1>
@@ -587,6 +589,152 @@ export const handleAdmin = (app: Express) => {
 			</body>
 			</html>
 		`);
+  });
+
+  // Admin videos management page
+  app.get("/admin/videos", async (req, res) => {
+    const events = await knex("events")
+      .select("*")
+      .orderBy("start_time", "desc");
+
+    const videos = await knex("videos")
+      .select("videos.*", "events.name as event_name")
+      .leftJoin("events", "videos.event_id", "events.id")
+      .orderBy("videos.sort_order", "asc")
+      .orderBy("videos.created_at", "desc");
+
+    res.send(`
+			<!DOCTYPE html>
+			<html>
+			<head>
+				<title>Admin - Videos</title>
+				<style>
+					body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+					.container { max-width: 1200px; margin: 0 auto; }
+					h1 { color: #333; }
+					.nav { margin-bottom: 20px; }
+					.nav a { margin-right: 15px; color: #0066cc; text-decoration: none; }
+					.nav a:hover { text-decoration: underline; }
+					.card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+					.form-group { margin-bottom: 15px; }
+					.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+					.form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+					.btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+					.btn-primary { background: #0066cc; color: white; }
+					.btn-danger { background: #dc3545; color: white; }
+					.btn:hover { opacity: 0.9; }
+					table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+					th, td { text-align: left; padding: 12px 15px; border-bottom: 1px solid #eee; }
+					th { background: #f8f9fa; font-weight: 600; color: #555; }
+					td { font-size: 14px; }
+					.url-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+				</style>
+			</head>
+			<body>
+				<div class="container">
+					<div class="nav">
+						<a href="/admin/pictures">Pictures</a>
+						<a href="/admin/events">Events</a>
+						<a href="/admin/videos">Videos</a>
+					</div>
+					
+					<h1>Video Management</h1>
+					
+					<div class="card">
+						<h2>Add New Video</h2>
+						<form action="/admin/videos/create" method="POST">
+							<div class="form-group">
+								<label>Title</label>
+								<input type="text" name="title" required placeholder="e.g., Opening Ceremony" />
+							</div>
+							<div class="form-group">
+								<label>HLS URL</label>
+								<input type="url" name="url" required placeholder="https://example.com/video/playlist.m3u8" />
+							</div>
+							<div class="form-group">
+								<label>Event</label>
+								<select name="event_id" required>
+									<option value="">Select an event</option>
+									${events.map((e) => `<option value="${e.id}">${e.name}</option>`).join("")}
+								</select>
+							</div>
+							<div class="form-group">
+								<label>Sort Order (lower = first)</label>
+								<input type="number" name="sort_order" value="0" />
+							</div>
+							<button type="submit" class="btn btn-primary">Add Video</button>
+						</form>
+					</div>
+					
+					<h2>All Videos</h2>
+					${
+            videos.length === 0
+              ? "<p>No videos yet.</p>"
+              : `
+					<table>
+						<thead>
+							<tr>
+								<th>Title</th>
+								<th>Event</th>
+								<th>URL</th>
+								<th>Order</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							${videos
+                .map(
+                  (v: any) => `
+								<tr>
+									<td>${v.title}</td>
+									<td>${v.event_name || "N/A"}</td>
+									<td class="url-cell" title="${v.url}">${v.url}</td>
+									<td>${v.sort_order}</td>
+									<td>
+										<form action="/admin/videos/delete/${v.id}" method="POST" style="display:inline;" onsubmit="return confirm('Delete this video?')">
+											<button type="submit" class="btn btn-danger" style="padding: 5px 12px; font-size: 12px;">Delete</button>
+										</form>
+									</td>
+								</tr>
+							`,
+                )
+                .join("")}
+						</tbody>
+					</table>
+					`
+          }
+				</div>
+			</body>
+			</html>
+		`);
+  });
+
+  // Create video
+  app.post("/admin/videos/create", async (req, res) => {
+    const { title, url, event_id, sort_order } = req.body;
+
+    if (!title || !url || !event_id) {
+      res.status(400).send("Missing required fields");
+      return;
+    }
+
+    await knex("videos").insert({
+      title,
+      url,
+      event_id: parseInt(event_id),
+      sort_order: parseInt(sort_order) || 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    res.redirect("/admin/videos");
+  });
+
+  // Delete video
+  app.post("/admin/videos/delete/:id", async (req, res) => {
+    const { id } = req.params;
+    await knex("videos").where({ id }).delete();
+    res.redirect("/admin/videos");
   });
 
   // Legacy admin route - redirect to pictures

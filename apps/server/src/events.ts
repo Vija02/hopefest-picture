@@ -139,6 +139,25 @@ export const handleEvents = (app: Express) => {
     res.json(eventsWithCounts);
   });
 
+  // Get videos for an event by slug
+  app.get("/api/events/:slug/videos", async (req, res) => {
+    const { slug } = req.params;
+
+    const event = await knex("events").where({ slug }).first();
+    if (!event) {
+      res.status(404).json({ error: "Event not found" });
+      return;
+    }
+
+    const videos = await knex("videos")
+      .select("*")
+      .where({ event_id: event.id })
+      .orderBy("sort_order", "asc")
+      .orderBy("created_at", "desc");
+
+    res.json(videos);
+  });
+
   // Create event (admin)
   app.post("/api/events", async (req, res) => {
     const { name, slug, start_time, end_time } = req.body;
