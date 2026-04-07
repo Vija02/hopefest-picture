@@ -1,5 +1,10 @@
 import { Box, Text } from "@chakra-ui/react";
-import { createPlayer, useMedia } from "@videojs/react";
+import {
+  createPlayer,
+  selectControls,
+  useMedia,
+  usePlayer,
+} from "@videojs/react";
 import { HlsVideo } from "@videojs/react/media/hls-video";
 import { MinimalVideoSkin, videoFeatures } from "@videojs/react/video";
 import "@videojs/react/video/minimal-skin.css";
@@ -18,11 +23,13 @@ interface QualityLevel {
 
 function QualitySelector() {
   const media = useMedia();
+  const controls = usePlayer(selectControls);
   const [levels, setLevels] = useState<QualityLevel[]>([]);
   const [isAuto, setIsAuto] = useState(true);
   const [activeLevel, setActiveLevel] = useState(-1); // The actual playing level
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const visible = controls?.controlsVisible ?? true;
 
   useEffect(() => {
     if (!media) return;
@@ -136,6 +143,9 @@ function QualitySelector() {
         top: 8,
         right: 8,
         zIndex: 20,
+        opacity: visible || open ? 1 : 0,
+        pointerEvents: visible || open ? "auto" : "none",
+        transition: "opacity 150ms ease-out",
       }}
     >
       <button
