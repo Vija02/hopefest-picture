@@ -9,7 +9,7 @@ import { HlsVideo } from "@videojs/react/media/hls-video";
 import { MinimalVideoSkin, videoFeatures } from "@videojs/react/video";
 import "@videojs/react/video/minimal-skin.css";
 import Hls from "hls.js";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 const Player = createPlayer({ features: videoFeatures });
 
@@ -249,7 +249,7 @@ interface HlsVideoPlayerProps {
   title: string;
 }
 
-export const HlsVideoPlayer = ({ url, title }: HlsVideoPlayerProps) => {
+export const HlsVideoPlayer = memo(({ url, title }: HlsVideoPlayerProps) => {
   return (
     <Box>
       {title && (
@@ -267,4 +267,4 @@ export const HlsVideoPlayer = ({ url, title }: HlsVideoPlayerProps) => {
       </Box>
     </Box>
   );
-};
+});

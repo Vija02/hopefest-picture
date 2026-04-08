@@ -786,6 +786,37 @@ export default function EventGalleryPage() {
           )}
         </Box>
       </Box>
+      {/* Videos - always visible */}
+      {videos.length > 0 && (
+        <Box maxW={1210} margin="auto" px={{ base: "8px", md: "16px" }} pt="16px" pb="16px">
+          <Text
+            fontSize="lg"
+            fontWeight="semibold"
+            color="gray.700"
+            mb={3}
+          >
+            Videos
+          </Text>
+          <Box
+            display="grid"
+            gridTemplateColumns={{
+              base: "1fr",
+              md: "repeat(2, 1fr)",
+              xl: "repeat(3, 1fr)",
+            }}
+            gap={4}
+          >
+            {videos.map((video) => (
+              <HlsVideoPlayer
+                key={video.id}
+                url={video.url}
+                title={video.title}
+              />
+            ))}
+          </Box>
+        </Box>
+      )}
+
       {/* Tabs */}
       <Box maxW={1210} margin="auto">
         <Box display="flex" borderBottom="2px solid" borderColor="gray.200">
@@ -805,7 +836,7 @@ export default function EventGalleryPage() {
             onClick={() => setActiveTab("moments")}
             transition="all 0.2s"
           >
-            Your Moments / Captures
+            Your Moments
           </Box>
           <Box
             flex={1}
@@ -823,7 +854,7 @@ export default function EventGalleryPage() {
             onClick={() => setActiveTab("official")}
             transition="all 0.2s"
           >
-            Official Highlights / Photos
+            Official Highlights
           </Box>
         </Box>
       </Box>
@@ -847,36 +878,6 @@ export default function EventGalleryPage() {
                 myUploads={myUploads}
                 highlightedIds={highlightedIds}
               />
-            )}
-
-            {videos.length > 0 && (
-              <Box mt={2} mb={3}>
-                <Text
-                  fontSize="lg"
-                  fontWeight="semibold"
-                  color="gray.700"
-                  mb={3}
-                >
-                  Videos
-                </Text>
-                <Box
-                  display="grid"
-                  gridTemplateColumns={{
-                    base: "1fr",
-                    md: "repeat(2, 1fr)",
-                    xl: "repeat(3, 1fr)",
-                  }}
-                  gap={4}
-                >
-                  {videos.map((video) => (
-                    <HlsVideoPlayer
-                      key={video.id}
-                      url={video.url}
-                      title={video.title}
-                    />
-                  ))}
-                </Box>
-              </Box>
             )}
 
             {/* All Photos Section */}
