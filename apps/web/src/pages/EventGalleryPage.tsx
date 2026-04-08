@@ -278,6 +278,7 @@ const Gallery = ({
         slides={data.map((x: any) => ({
           src: x.src,
           srcSet: calculateSrcSet(x.src, x.size.width) as any,
+          download: x.src,
         }))}
         plugins={[Counter, Download, Fullscreen, Slideshow]}
       />
