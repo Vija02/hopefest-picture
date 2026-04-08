@@ -133,11 +133,18 @@ app.get("/pictures/:eventSlug", async (req, res) => {
     return;
   }
 
+  const official = req.query.official === "true";
+
   const orderByColumn =
     sort === "upload_date" ? "created_at" : "exif_created_at";
   const data = await knex("pictures")
     .select("*")
-    .where({ is_hidden: false, is_cached: true, event_id: event.id })
+    .where({
+      is_hidden: false,
+      is_cached: true,
+      event_id: event.id,
+      is_official: official,
+    })
     .orderBy(orderByColumn, "desc");
 
   const formatted = data.map((x) => {
@@ -148,6 +155,7 @@ app.get("/pictures/:eventSlug", async (req, res) => {
       createdAt: x.created_at,
       exifCreatedAt: x.exif_created_at,
       uploaderId: x.uploader_id,
+      isOfficial: !!x.is_official,
     };
   });
 
@@ -208,12 +216,14 @@ app.all("/tusd_notify", async (req, res) => {
     const filename = req.body.Event.Upload.MetaData.filename;
     const storageKey = req.body.Event.Upload.Storage.Key;
     const uploaderId = req.body.Event.Upload.MetaData.uploaderId || null;
+    const isOfficial = req.body.Event.Upload.MetaData.isOfficial === "true";
     const activeEvent = await getActiveEvent();
 
     const [insertedId] = await knex("pictures").insert({
       name: filename,
       file_path: storageKey,
       is_hidden: false,
+      is_official: isOfficial,
       event_id: activeEvent?.id || null,
       uploader_id: uploaderId,
       created_at: new Date(),
@@ -232,6 +242,7 @@ app.all("/tusd_notify", async (req, res) => {
         createdAt: picture.created_at,
         exifCreatedAt: picture.exif_created_at,
         uploaderId: picture.uploader_id,
+        isOfficial: !!picture.is_official,
       });
     }
 

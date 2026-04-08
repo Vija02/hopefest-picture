@@ -512,15 +512,21 @@ const isEventActive = (startTime: string, endTime: string) => {
 
 type SortOption = "photo_date" | "upload_date";
 
+type TabType = "moments" | "official";
+
 export default function EventGalleryPage() {
   const { eventSlug } = useParams<{ eventSlug: string }>();
   const [event, setEvent] = useState<Event | null>(null);
   const [data, setData] = useState<any[]>([]);
+  const [officialData, setOfficialData] = useState<any[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>("photo_date");
+  const [officialSortBy, setOfficialSortBy] =
+    useState<SortOption>("photo_date");
   const [highlightedIds, setHighlightedIds] = useState<Set<number>>(new Set());
+  const [activeTab, setActiveTab] = useState<TabType>("moments");
 
   const userId = getUserId();
 
@@ -537,6 +543,15 @@ export default function EventGalleryPage() {
       setData(res.data);
     });
   }, [eventSlug, sortBy]);
+
+  const getOfficialPics = useCallback(() => {
+    if (!eventSlug) return;
+    axios
+      .get(`/pictures/${eventSlug}?sort=${officialSortBy}&official=true`)
+      .then((res) => {
+        setOfficialData(res.data);
+      });
+  }, [eventSlug, officialSortBy]);
 
   useEffect(() => {
     if (!eventSlug) return;
@@ -562,6 +577,7 @@ export default function EventGalleryPage() {
 
     // Fetch pictures
     getPics();
+    getOfficialPics();
 
     // Fetch videos
     axios
@@ -572,7 +588,7 @@ export default function EventGalleryPage() {
       .catch(() => {
         // Videos are optional, don't show error
       });
-  }, [eventSlug, getPics]);
+  }, [eventSlug, getPics, getOfficialPics]);
 
   // SSE for real-time updates with reconnection
   useEffect(() => {
@@ -591,19 +607,24 @@ export default function EventGalleryPage() {
         const message = JSON.parse(event.data);
         if (message.type === "new_picture") {
           const picture = message.picture;
-          setData((prevData) => [picture, ...prevData]);
 
-          // Highlight if it's the current user's upload
-          if (picture.uploaderId === userId) {
-            setHighlightedIds((prev) => new Set(prev).add(picture.id));
-            // Remove highlight after animation completes (1.5s * 3 = 4.5s)
-            setTimeout(() => {
-              setHighlightedIds((prev) => {
-                const next = new Set(prev);
-                next.delete(picture.id);
-                return next;
-              });
-            }, 5000);
+          if (picture.isOfficial) {
+            setOfficialData((prevData) => [picture, ...prevData]);
+          } else {
+            setData((prevData) => [picture, ...prevData]);
+
+            // Highlight if it's the current user's upload
+            if (picture.uploaderId === userId) {
+              setHighlightedIds((prev) => new Set(prev).add(picture.id));
+              // Remove highlight after animation completes (1.5s * 3 = 4.5s)
+              setTimeout(() => {
+                setHighlightedIds((prev) => {
+                  const next = new Set(prev);
+                  next.delete(picture.id);
+                  return next;
+                });
+              }, 5000);
+            }
           }
         }
       };
@@ -765,6 +786,48 @@ export default function EventGalleryPage() {
           )}
         </Box>
       </Box>
+      {/* Tabs */}
+      <Box maxW={1210} margin="auto">
+        <Box display="flex" borderBottom="2px solid" borderColor="gray.200">
+          <Box
+            flex={1}
+            textAlign="center"
+            py={3}
+            px={4}
+            cursor="pointer"
+            fontWeight="semibold"
+            fontSize={{ base: "sm", md: "md" }}
+            color={activeTab === "moments" ? "blue.600" : "gray.500"}
+            borderBottom="3px solid"
+            borderColor={activeTab === "moments" ? "blue.600" : "transparent"}
+            bg={activeTab === "moments" ? "white" : "transparent"}
+            _hover={{ bg: "gray.50" }}
+            onClick={() => setActiveTab("moments")}
+            transition="all 0.2s"
+          >
+            Your Moments / Captures
+          </Box>
+          <Box
+            flex={1}
+            textAlign="center"
+            py={3}
+            px={4}
+            cursor="pointer"
+            fontWeight="semibold"
+            fontSize={{ base: "sm", md: "md" }}
+            color={activeTab === "official" ? "blue.600" : "gray.500"}
+            borderBottom="3px solid"
+            borderColor={activeTab === "official" ? "blue.600" : "transparent"}
+            bg={activeTab === "official" ? "white" : "transparent"}
+            _hover={{ bg: "gray.50" }}
+            onClick={() => setActiveTab("official")}
+            transition="all 0.2s"
+          >
+            Official Highlights / Photos
+          </Box>
+        </Box>
+      </Box>
+
       <Box
         bgColor="white"
         maxW={1210}
@@ -773,64 +836,99 @@ export default function EventGalleryPage() {
         py="16px"
         boxShadow="md"
       >
-        <Upload getPics={getPics} isAcceptingUploads={isAcceptingUploads} />
-        <Box mb={4} />
+        {activeTab === "moments" && (
+          <>
+            <Upload getPics={getPics} isAcceptingUploads={isAcceptingUploads} />
+            <Box mb={4} />
 
-        {/* My Uploads Section */}
-        {myUploads.length > 0 && (
-          <MyUploadsSection
-            myUploads={myUploads}
-            highlightedIds={highlightedIds}
-          />
+            {/* My Uploads Section */}
+            {myUploads.length > 0 && (
+              <MyUploadsSection
+                myUploads={myUploads}
+                highlightedIds={highlightedIds}
+              />
+            )}
+
+            {videos.length > 0 && (
+              <Box mt={2} mb={3}>
+                <Text
+                  fontSize="lg"
+                  fontWeight="semibold"
+                  color="gray.700"
+                  mb={3}
+                >
+                  Videos
+                </Text>
+                <Box
+                  display="grid"
+                  gridTemplateColumns={{
+                    base: "1fr",
+                    md: "repeat(2, 1fr)",
+                    xl: "repeat(3, 1fr)",
+                  }}
+                  gap={4}
+                >
+                  {videos.map((video) => (
+                    <HlsVideoPlayer
+                      key={video.id}
+                      url={video.url}
+                      title={video.title}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            )}
+
+            {/* All Photos Section */}
+            {data.length === 0 ? (
+              <Box textAlign="center" py={8}>
+                <Text color="gray.500">
+                  No photos yet. Be the first to upload!
+                </Text>
+              </Box>
+            ) : sortBy === "photo_date" ? (
+              <GroupedByDayGallery
+                data={data}
+                title={myUploads.length > 0 ? "All Photos" : undefined}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                highlightedIds={highlightedIds}
+              />
+            ) : (
+              <Gallery
+                data={data}
+                title={myUploads.length > 0 ? "All Photos" : undefined}
+                showSortControls={true}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                highlightedIds={highlightedIds}
+              />
+            )}
+          </>
         )}
 
-        {videos.length > 0 && (
-          <Box mt={2} mb={3}>
-            <Text fontSize="lg" fontWeight="semibold" color="gray.700" mb={3}>
-              Videos
-            </Text>
-            <Box
-              display="grid"
-              gridTemplateColumns={{
-                base: "1fr",
-                md: "repeat(2, 1fr)",
-                xl: "repeat(3, 1fr)",
-              }}
-              gap={4}
-            >
-              {videos.map((video) => (
-                <HlsVideoPlayer
-                  key={video.id}
-                  url={video.url}
-                  title={video.title}
-                />
-              ))}
-            </Box>
-          </Box>
-        )}
-
-        {/* All Photos Section */}
-        {data.length === 0 ? (
-          <Box textAlign="center" py={8}>
-            <Text color="gray.500">No photos yet. Be the first to upload!</Text>
-          </Box>
-        ) : sortBy === "photo_date" ? (
-          <GroupedByDayGallery
-            data={data}
-            title={myUploads.length > 0 ? "All Photos" : undefined}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            highlightedIds={highlightedIds}
-          />
-        ) : (
-          <Gallery
-            data={data}
-            title={myUploads.length > 0 ? "All Photos" : undefined}
-            showSortControls={true}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            highlightedIds={highlightedIds}
-          />
+        {activeTab === "official" && (
+          <>
+            {/* Official Photos Section */}
+            {officialData.length === 0 ? (
+              <Box textAlign="center" py={8}>
+                <Text color="gray.500">No official photos yet.</Text>
+              </Box>
+            ) : officialSortBy === "photo_date" ? (
+              <GroupedByDayGallery
+                data={officialData}
+                sortBy={officialSortBy}
+                setSortBy={setOfficialSortBy}
+              />
+            ) : (
+              <Gallery
+                data={officialData}
+                showSortControls={true}
+                sortBy={officialSortBy}
+                setSortBy={setOfficialSortBy}
+              />
+            )}
+          </>
         )}
       </Box>
     </Box>
