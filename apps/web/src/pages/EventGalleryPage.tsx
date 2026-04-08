@@ -275,11 +275,17 @@ const Gallery = ({
         on={{
           view: ({ index: currentIndex }) => setLightboxIndex(currentIndex),
         }}
-        slides={data.map((x: any) => ({
-          src: x.src,
-          srcSet: calculateSrcSet(x.src, x.size.width) as any,
-          download: x.src,
-        }))}
+        slides={data.map((x: any) => {
+          const splitted = x.src.split("/");
+          return {
+            src: x.src,
+            srcSet: calculateSrcSet(x.src, x.size.width) as any,
+            download: {
+              url: x.src,
+              filename: splitted[splitted.length - 1],
+            },
+          };
+        })}
         plugins={[Counter, Download, Fullscreen, Slideshow]}
       />
     </Box>
@@ -789,13 +795,14 @@ export default function EventGalleryPage() {
       </Box>
       {/* Videos - always visible */}
       {videos.length > 0 && (
-        <Box maxW={1210} margin="auto" px={{ base: "8px", md: "16px" }} pt="16px" pb="16px">
-          <Text
-            fontSize="lg"
-            fontWeight="semibold"
-            color="gray.700"
-            mb={3}
-          >
+        <Box
+          maxW={1210}
+          margin="auto"
+          px={{ base: "8px", md: "16px" }}
+          pt="16px"
+          pb="16px"
+        >
+          <Text fontSize="lg" fontWeight="semibold" color="gray.700" mb={3}>
             Videos
           </Text>
           <Box
