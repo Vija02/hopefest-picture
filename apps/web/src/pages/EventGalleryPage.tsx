@@ -286,6 +286,34 @@ const Gallery = ({
             },
           };
         })}
+        download={{
+          download: ({ slide, saveAs }) => {
+            const url =
+              (typeof slide.download === "object" && slide.download.url) ||
+              slide.src;
+            const filename =
+              (typeof slide.download === "object" && slide.download.filename) ||
+              undefined;
+            fetch(url)
+              .then((res) => res.blob())
+              .then((blob) => {
+                const ext = url.split(".").pop()?.toLowerCase();
+                const mimeMap: Record<string, string> = {
+                  jpg: "image/jpeg",
+                  jpeg: "image/jpeg",
+                  png: "image/png",
+                  gif: "image/gif",
+                  webp: "image/webp",
+                };
+                const correctType =
+                  (ext && mimeMap[ext]) || blob.type || "image/jpeg";
+                saveAs(
+                  new Blob([blob], { type: correctType }),
+                  filename,
+                );
+              });
+          },
+        }}
         plugins={[Counter, Download, Fullscreen, Slideshow]}
       />
     </Box>
