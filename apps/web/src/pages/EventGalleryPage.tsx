@@ -287,31 +287,57 @@ const Gallery = ({
           };
         })}
         download={{
-          download: ({ slide, saveAs }) => {
+          download: async ({ slide, saveAs }) => {
             const url =
               (typeof slide.download === "object" && slide.download.url) ||
               slide.src;
             const filename =
-              (typeof slide.download === "object" && slide.download.filename) ||
-              undefined;
-            fetch(url)
-              .then((res) => res.blob())
-              .then((blob) => {
-                const ext = url.split(".").pop()?.toLowerCase();
-                const mimeMap: Record<string, string> = {
-                  jpg: "image/jpeg",
-                  jpeg: "image/jpeg",
-                  png: "image/png",
-                  gif: "image/gif",
-                  webp: "image/webp",
-                };
-                const correctType =
-                  (ext && mimeMap[ext]) || blob.type || "image/jpeg";
-                saveAs(
-                  new Blob([blob], { type: correctType }),
-                  filename,
-                );
-              });
+              (typeof slide.download === "object" &&
+                slide.download.filename) ||
+              "image.jpg";
+
+            const ext = url.split(".").pop()?.toLowerCase() || "jpg";
+            const mimeMap: Record<string, string> = {
+              jpg: "image/jpeg",
+              jpeg: "image/jpeg",
+              png: "image/png",
+              gif: "image/gif",
+              webp: "image/webp",
+            };
+            const mimeType = mimeMap[ext] || "image/jpeg";
+
+            // Detect iOS (including iPadOS 13+ which reports as MacIntel)
+            const isIOS =
+              /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" &&
+                navigator.maxTouchPoints > 1);
+
+            try {
+              const response = await fetch(url);
+              const blob = await response.blob();
+              const correctedBlob = new Blob([blob], { type: mimeType });
+
+              if (isIOS) {
+                // iOS Safari doesn't support anchor-based blob downloads;
+                // use the Web Share API to trigger the native save sheet
+                const file = new File([correctedBlob], filename, {
+                  type: mimeType,
+                });
+                if (navigator.canShare?.({ files: [file] })) {
+                  await navigator.share({ files: [file] });
+                  return;
+                }
+                // Fallback: open in new tab so user can long-press to save
+                window.open(url, "_blank");
+                return;
+              }
+
+              saveAs(correctedBlob, filename);
+            } catch (err) {
+              if ((err as Error).name !== "AbortError") {
+                window.open(url, "_blank");
+              }
+            }
           },
         }}
         plugins={[Counter, Download, Fullscreen, Slideshow]}
